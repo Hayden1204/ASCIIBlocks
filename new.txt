@@ -1,0 +1,51 @@
+Version 1.0.0 - 22/01/04:
+	Additions:
+		- Press WASD to move, and IJKL to place blocks
+		- Map size of 32 horizontally by 16 vertically
+		- A single solid block to build with
+		- The X and Y position of the player is shown on screen
+	Fixes:
+		- None
+
+Version 2.0.0 - 22/01/05:
+	Additions:
+		- Doubled map size horizontally to a 64 horizontally by 16 vertically sized map
+		- Added nine more blocks to build with
+		- Added non-solid block type, and blocks
+		- New keybindings, press Z to reset the map and X to quit the game
+	Fixes:
+		- None
+
+Version 3.0.0 - 22/01/08:
+	Additions:
+		- Information about the current game session is moved to the bottom of the screen
+		- The keybinding Z for resetting the map has been dropped, in favour of the '[r]eset [g]ame' command
+		- Commands have been implemented, the keybinding is activated with T:
+			- [b]lock
+			- [r]eset [g]ame
+			- [t]eleport
+			- [h]elp
+	Fixes:
+	  - None
+
+Version 3.0.1 - 22/01/08:
+	Additions:
+		- None
+	Fixes:
+		- Teleportation to an out-of-bounds X position is fixed
+
+Version 4.0.0 - 22/01/22:
+	Additions:
+		- New command:
+			- [n]ew
+		- Block names have been implemented
+		- Map shrunken back to 32 horizontally by 16 vertically due to console lag
+		- Saving and loading levels is implemented with the ABL format
+	Fixes:
+		- None
+
+Version 5.0.0 - 22/09/21:
+	Need to work on this later, there are so many new features and I want to get V5.0.1 out now without faffing
+
+Version 5.0.1 - 22/09/23:
+	Same reason as above
