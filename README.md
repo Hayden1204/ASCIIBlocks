@@ -1,2 +1,2 @@
 # ASCIIBlocks
-ASCIIBlocks, to the Max!
+ASCIIBlocks to the Max!
