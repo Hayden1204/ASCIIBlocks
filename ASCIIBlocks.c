@@ -50,7 +50,7 @@
 #define BLOCK_AT(Y, X) map[Y * WIDTH + X]
 
 #define LEVEL_SIGNATURE "ASCIIBLOCKS"
-#define OPTIONS 9
+#define OPTIONS 10
 
 int cursor_y;
 int cursor_x;
@@ -76,9 +76,10 @@ char *options_list[OPTIONS] = {"Back",
 							   "Save Level",
 							   "Teleport",
 							   "Teleport Relative",
-							   "Enable/Disable Painting",
-							   "Enable/Disable Solidity",
-							   "Enable/Disable Warps"};
+							   "Toggle Painting",
+							   "Toggle Solidity",
+							   "Toggle Warps",
+							   "Toggle Solid Status of Held Block"};
 
 void init_colour()
 {
@@ -213,6 +214,15 @@ void place_block(int relative_block_y, int relative_block_x, bool condition)
 	}
 }
 
+void new_level()
+{
+	free(map);
+	
+	map = calloc(MAP_SIZE, sizeof (uint8_t));
+	
+	draw_map();
+}
+
 void save_level()
 {
 	int i;
@@ -244,6 +254,9 @@ void load_level()
 void option(int i)
 {
 	switch (i) {
+		case 1:
+			new_level();
+			break;
 		case 2:
 			load_level();
 			break;
@@ -255,6 +268,10 @@ void option(int i)
 			break;
 		case 8:
 			warps = !warps;
+			break;
+		case 9:
+			block_solid_status[held_block] = !block_solid_status[held_block];
+			break;
 	}
 	
 	draw_ui();
