@@ -57,6 +57,10 @@ int cursor_x;
 
 int y_pos = 0;
 int x_pos = 0;
+
+int spawn_y_pos = 0;
+int spawn_x_pos = 0;
+
 FILE *file;
 uint8_t *map;
 uint8_t held_block = 1;
@@ -152,7 +156,7 @@ void draw_map()
 
 void draw_ui()
 {
-	mvprintw(0, WIDTH + 4, "ASCIIBlocks 1.5.0-alpha.3\n");
+	mvprintw(0, WIDTH + 4, "ASCIIBlocks 1.5.0-alpha.4\n");
 	mvprintw(1, WIDTH + 4, "by Hayden\n");
 	
 	mvprintw(3, WIDTH + 4, "Use WASD to move,\n");
@@ -162,7 +166,7 @@ void draw_ui()
 	mvprintw(7, WIDTH + 4, "Use M to open the menu\n");
 	mvprintw(8, WIDTH + 4, "and CTRL-C to quit the game.\n");
 	
-	mvprintw(13, WIDTH + 4, "Block Texture:\n");
+	mvprintw(16, WIDTH + 4, "Block Texture:\n");
 
 	draw_borders();
 	draw_map();
@@ -175,7 +179,7 @@ void move_player(int relative_block_y, int relative_block_x, int *axis_as_positi
 		mvaddch(cursor_y, cursor_x - 1, block[RELATIVE_BLOCK(0, 0)]);
 		attroff(COLOR_PAIR(RELATIVE_BLOCK(0, 0)));
 		
-		y_pos = 0, x_pos = 0;
+		y_pos = spawn_y_pos, x_pos = spawn_x_pos;
 		draw_player();
 		
 		return;
@@ -242,6 +246,8 @@ void load_level()
 	
 	file = fopen("level.asciilvl", "rb");
 	
+	if (!file) return;
+	
 	for (i = 0; i < MAP_SIZE; i++) {
 		map[i] = fgetc(file);
 	}
@@ -282,7 +288,6 @@ void options_menu()
 {
 	int i;
 	int j = 0;
-	int k;
 	
 	clear();
 	
@@ -293,9 +298,7 @@ void options_menu()
 			if (i == j) attroff(A_REVERSE);
 		}
 		
-		k = getch();
-		
-		switch (k) {
+		switch (getch()) {
 			case 'w':
 			case KEY_UP:
 				j--;
@@ -334,16 +337,19 @@ int main() {
 		mvprintw(10, WIDTH + 4, "X: %i\n", x_pos);
 		mvprintw(11, WIDTH + 4, "Y: %i\n", y_pos);
 		
+		mvprintw(13, WIDTH + 4, "Spawn X: %i\n", spawn_x_pos);
+		mvprintw(14, WIDTH + 4, "Spawn Y: %i\n", spawn_y_pos);
+		
 		attron(COLOR_PAIR(held_block));
-		mvaddch(13, WIDTH + 19, block[held_block]);
+		mvaddch(16, WIDTH + 19, block[held_block]);
 		attroff(COLOR_PAIR(held_block));
 		
-		mvprintw(14, WIDTH + 4, "Block Name: %s\n", block_name[held_block]);
-		mvprintw(15, WIDTH + 4, "Block ID: %i\n", held_block);
-		mvprintw(16, WIDTH + 4, "Block Solid Status: %s\n", block_solid_status[held_block] ? "Solid" : "Non-Solid");
+		mvprintw(17, WIDTH + 4, "Block Name: %s\n", block_name[held_block]);
+		mvprintw(18, WIDTH + 4, "Block ID: %i\n", held_block);
+		mvprintw(19, WIDTH + 4, "Block Solid Status: %s\n", block_solid_status[held_block] ? "Solid" : "Non-Solid");
 		
-		mvprintw(18, WIDTH + 4, "Solidity: %s\n", solidity ? "Enabled" : "Disabled");
-		mvprintw(19, WIDTH + 4, "Warps: %s\n", warps ? "Enabled" : "Disabled");
+		mvprintw(21, WIDTH + 4, "Solidity: %s\n", solidity ? "Enabled" : "Disabled");
+		mvprintw(22, WIDTH + 4, "Warps: %s\n", warps ? "Enabled" : "Disabled");
 		move(cursor_y, cursor_x);
 		
 		switch (getch()) {
@@ -374,6 +380,10 @@ int main() {
 				break;
 			case 'l':
 				place_block(0, 1, x_pos < WIDTH - 1);
+				break;
+			case '\n':
+				spawn_y_pos = y_pos;
+				spawn_x_pos = x_pos;
 				break;
 			case 'f':
 				held_block = (held_block - 1 + BLOCKS) % BLOCKS;
