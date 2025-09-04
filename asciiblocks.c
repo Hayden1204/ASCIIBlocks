@@ -16,8 +16,17 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <ncurses.h>
 #include <time.h>
+
+#if defined(_WIN32) || defined(_WIN64)
+	#include <curses.h>
+	#define NAME "winASCIIBlocks"
+#else
+	#include <ncurses.h>
+	#define NAME "ASCIIBlocks"
+#endif
+
+#define VERSION "1.5.0-alpha.6"
 
 #define C_BORDER '+'
 #define H_BORDER '-'
@@ -30,33 +39,34 @@
 #define WARP_2 16
 #define WARP_3 17
 #define WARP_4 18
-#define WARP_TO_SPAWN 19
-#define WARP_TO_RANDOM_COORDS 20
 #define FILEWARP_1 21
 #define FILEWARP_2 22
 #define FILEWARP_3 23
 #define FILEWARP_4 24
+#define WARP_SPAWN 19
+#define WARP_RANDOM 20
 
 #define DEFAULT_WIDTH 96
 #define DEFAULT_HEIGHT 28
 
-#define MAP_SIZE width + (height - 1) * width
+#define MAP_SIZE width * height
 
 #define RELATIVE_BLOCK(Y, X) map[(y + Y) * width + (x + X)]
 #define PLACE_RELATIVE_BLOCK(Y, X) (RELATIVE_BLOCK(Y, X) == 0) ? held_block : 0
 #define BLOCK_AT(Y, X) map[Y * width + X]
 
 #define LEVEL_SIGNATURE "ASCIIBLOCKS"
-#define OPTIONS 11
+#define OPTIONS 13
+#define LEVELS 4
 
-int width = 96;
-int height = 28;
-
-int cursor_y = 1;
-int cursor_x = 2;
+int width = DEFAULT_WIDTH;
+int height = DEFAULT_HEIGHT;
 
 int y = 0;
 int x = 0;
+
+int cursor_y = 1;
+int cursor_x = 2;
 
 int spawn_y = 0;
 int spawn_x = 0;
@@ -76,17 +86,45 @@ bool solidity = true;
 bool painting = false;
 bool warps = true;
 
-char *options_list[OPTIONS] = {"Back",
-							   "New Level",
-							   "Load Level",
-							   "Save Level",
-							   "Teleport",
-							   "Teleport Relative",
-							   "Toggle Painting",
-							   "Toggle Solidity",
-							   "Toggle Warps",
-							   "Toggle Solid Status of Held Block",
-							   "Roll a Dice"};
+char *option_list[OPTIONS] = {"Back",
+							  "New Level",
+							  "Load Level",
+							  "Save Level",
+							  "Teleport",
+							  "Teleport Relative",
+							  "Toggle Painting",
+							  "Toggle Solidity",
+							  "Toggle Warps",
+							  "Toggle Solid Status of Held Block",
+							  "Replace All Instances of One Block with Held Block",
+							  "Fill Level with Held Block",
+							  "Roll a Dice"};
+
+char *level_list[LEVELS] = {"level1.asciilvl",
+							"level2.asciilvl",
+							"level3.asciilvl",
+							"level4.asciilvl"};
+
+void toggle(bool *boolean);
+void init_colour();
+void draw_borders();
+void draw_map();
+void load_level(int level);
+void save_level(int level);
+void save_level_menu();
+void load_level_menu();
+void tp(int tp_y, int tp_x, bool respect_solidity, bool respect_warps);
+void teleport(bool relative);
+void draw_ui();
+void place_block(int relative_block_y, int relative_block_x, bool condition);
+void set_block(int set_block_y, int set_block_x, bool remove_block_if_present);
+void roll_a_dice();
+void new_level();
+void replace_all();
+void fill_all();
+void option(int i);
+void options_menu();
+int main(void);
 
 void toggle(bool *boolean)
 {
@@ -126,19 +164,17 @@ void init_colour()
 
 void draw_borders()
 {
-	int i;
-	
 	mvaddch(0, 0, C_BORDER);
 	mvaddch(0, width + 1, C_BORDER);
 	mvaddch(height + 1, 0, C_BORDER);
 	mvaddch(height + 1, width + 1, C_BORDER);
 	
-	for (i = 1; i <= width; i++) {
+	for (int i = 1; i <= width; i++) {
 		mvaddch(0, i, H_BORDER);
 		mvaddch(height + 1, i, H_BORDER);
 	}
 
-	for (i = 1; i <= height; i++) {
+	for (int i = 1; i <= height; i++) {
 		mvaddch(i, 0, V_BORDER);
 		mvaddch(i, width + 1, V_BORDER);
 	}
@@ -153,29 +189,9 @@ void draw_map()
 	}
 }
 
-void save_level(int level)
-{
-	int i;
-	
-	if (level == 1) file = fopen("level1.asciilvl", "wb");
-	if (level == 2) file = fopen("level2.asciilvl", "wb");
-	if (level == 3) file = fopen("level3.asciilvl", "wb");
-	if (level == 4) file = fopen("level4.asciilvl", "wb");
-	
-	for (i = 0; i < MAP_SIZE; i++) {
-		fputc(map[i], file);
-	}
-	
-	fclose(file);
-}
-
 void load_level(int level)
 {
-	if (level == 1) file = fopen("level1.asciilvl", "rb");
-	if (level == 2) file = fopen("level2.asciilvl", "rb");
-	if (level == 3) file = fopen("level3.asciilvl", "rb");
-	if (level == 4) file = fopen("level4.asciilvl", "rb");
-	
+	if (level >= 0 && level < LEVELS) file = fopen(level_list[level], "rb");
 	if (!file) return;
 	
 	for (int i = 0; i < MAP_SIZE; i++) {
@@ -184,20 +200,37 @@ void load_level(int level)
 	
 	fclose(file);
 	
-	//tp(0, 0, false, false);
 	draw_map();
+	tp(0, 0, false, false);
+}
+
+void save_level(int level)
+{
+	if (level >= 0 && level < LEVELS) file = fopen(level_list[level], "wb");
+
+	for (int i = 0; i < MAP_SIZE; i++) {
+		fputc(map[i], file);
+	}
+	
+	fclose(file);
+}
+
+void load_level_menu()
+{
+	
+}
+
+void save_level_menu()
+{
 }
 
 void tp(int tp_y, int tp_x, bool respect_solidity, bool respect_warps)
 {
+	getyx(stdscr, cursor_y, cursor_x);
+
 	if (tp_y < 0 || tp_y >= height) return;
 	if (tp_x < 0 || tp_x >= width) return;
 	if (block_solid_status[BLOCK_AT(tp_y, tp_x)] && solidity && respect_solidity) return;
-
-	if (BLOCK_AT(tp_y, tp_x) == FILEWARP_1 && respect_warps) load_level(1);
-	if (BLOCK_AT(tp_y, tp_x) == FILEWARP_2 && respect_warps) load_level(2);
-	if (BLOCK_AT(tp_y, tp_x) == FILEWARP_3 && respect_warps) load_level(3);
-	if (BLOCK_AT(tp_y, tp_x) == FILEWARP_4 && respect_warps) load_level(4);
 
 	attron(COLOR_PAIR(BLOCK_AT(y, x)));
 	mvaddch(cursor_y, cursor_x - 1, block[BLOCK_AT(y, x)]);
@@ -206,13 +239,47 @@ void tp(int tp_y, int tp_x, bool respect_solidity, bool respect_warps)
 
 	y = tp_y;
 	x = tp_x;
+
+	if (BLOCK_AT(tp_y, tp_x) == WARP_SPAWN && warps && respect_warps) tp(spawn_y, spawn_x, false, true);
+	if (BLOCK_AT(tp_y, tp_x) == WARP_RANDOM && warps && respect_warps) tp(rand() % height, rand() % width, false, true);
+
+	if (BLOCK_AT(tp_y, tp_x) == FILEWARP_1 && warps && respect_warps) load_level(0);
+	if (BLOCK_AT(tp_y, tp_x) == FILEWARP_2 && warps && respect_warps) load_level(1);
+	if (BLOCK_AT(tp_y, tp_x) == FILEWARP_3 && warps && respect_warps) load_level(2);
+	if (BLOCK_AT(tp_y, tp_x) == FILEWARP_4 && warps && respect_warps) load_level(3);
+}
+
+void teleport(bool relative)
+{
+	clear();
+	curs_set(1);
+	echo();
+
+	int new_x = x;
+	printw("X: ");
+	scanw(" %d", &new_x);
+
+	int new_y = y;
+	printw("Y: ");
+	scanw(" %d", &new_y);
+
+	curs_set(0);
+	noecho();
+
+	draw_ui();
+
+	if (relative) {
+		tp(new_y + y, new_x + x, false, true);
+	} else {
+		tp(new_y, new_x, false, true);
+	}
 }
 
 void draw_ui()
 {
 	clear();
 
-	mvprintw(0, width + 4, "ASCIIBlocks 1.5.0-alpha.5\n");
+	mvprintw(0, width + 4, "%s %s\n", NAME, VERSION);
 	mvprintw(1, width + 4, "by Hayden\n");
 	
 	mvprintw(3, width + 4, "Use WASD to move,\n");
@@ -267,7 +334,7 @@ void new_level()
 	curs_set(1);
 	echo();
 
-	printw("Press Return for the width or height to accept their default values.\n\n");
+	printw("Leave the width or height blank to accept their default values.\n\n");
 
 	width = DEFAULT_WIDTH;
 	printw("width (default %d): ", DEFAULT_WIDTH);
@@ -283,7 +350,37 @@ void new_level()
 	map = calloc(MAP_SIZE, sizeof (uint8_t));
 	
 	draw_ui();
+
 	tp(0, 0, false, false);
+}
+
+void replace_all()
+{
+	clear();
+	curs_set(1);
+	echo();
+
+	uint8_t id_to_replace = 0;
+	printw("block id to replace: ");
+	scanw(" %hhu", &id_to_replace);
+
+	for (int i = 0; i < MAP_SIZE; i++) {
+		if (map[i] == id_to_replace) map[i] = held_block;
+	}
+
+	curs_set(0);
+	noecho();
+
+	draw_ui();
+}
+
+void fill_all()
+{
+	for (int i = 0; i < MAP_SIZE; i++) {
+		map[i] = held_block;
+	}
+
+	draw_map();
 }
 
 void option(int i)
@@ -293,10 +390,16 @@ void option(int i)
 			new_level();
 			break;
 		case 2:
-			load_level(1);
+			load_level(0);
 			break;
 		case 3:
-			save_level(1);
+			save_level(0);
+			break;
+		case 4:
+			teleport(false);
+			break;
+		case 5:
+			teleport(true);
 			break;
 		case 6:
 			toggle(&painting);
@@ -311,12 +414,17 @@ void option(int i)
 			toggle(&block_solid_status[held_block]);
 			break;
 		case 10:
+			replace_all();
+			break;
+		case 11:
+			fill_all();
+			break;
+		case 12:
 			roll_a_dice();
 			break;
 	}
 	
 	draw_ui();
-	move(cursor_y, cursor_x);
 }
 
 void options_menu()
@@ -328,7 +436,7 @@ void options_menu()
 	while (1) {
 		for (int i = 0; i < OPTIONS; i++) {
 			if (i == j) attron(A_REVERSE);
-			mvprintw(i, 0, "%s\n", options_list[i]);
+			mvprintw(i, 0, "%s\n", option_list[i]);
 			if (i == j) attroff(A_REVERSE);
 		}
 		
@@ -352,7 +460,8 @@ void options_menu()
 	}
 }
 
-int main() {
+int main(void)
+{
 	srand(time(NULL));
 	map = calloc(MAP_SIZE, sizeof (uint8_t));
 
