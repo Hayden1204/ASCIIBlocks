@@ -26,25 +26,34 @@
 	#define NAME "ASCIIBlocks"
 #endif
 
-#define VERSION "1.5.0-alpha.8"
+#define VERSION "1.5.0-alpha.9"
 
 #define C_BORDER '+'
 #define H_BORDER '-'
 #define V_BORDER '|'
 
 #define PLAYER 'X'
-#define BLOCKS 25
+#define BLOCKS 33
 
 #define WARP_1 15
 #define WARP_2 16
 #define WARP_3 17
 #define WARP_4 18
-#define FILEWARP_1 21
-#define FILEWARP_2 22
-#define FILEWARP_3 23
-#define FILEWARP_4 24
-#define WARP_SPAWN 19
-#define WARP_RANDOM 20
+#define WARP_5 19
+#define WARP_6 20
+#define WARP_7 21
+#define WARP_8 22
+#define FILEWARP_1 25
+#define FILEWARP_2 26
+#define FILEWARP_3 27
+#define FILEWARP_4 28
+#define WARP_SPAWN 23
+#define WARP_RANDOM 24
+
+#define ZIPWIRE_UP 29
+#define ZIPWIRE_DOWN 30
+#define ZIPWIRE_LEFT 31
+#define ZIPWIRE_RIGHT 32
 
 #define DEFAULT_WIDTH 96
 #define DEFAULT_HEIGHT 28
@@ -76,11 +85,17 @@ uint8_t* map;
 uint8_t held_block = 1;
 char block[BLOCKS] = {' ', '#', '%', '&', '$', '*', '@', '+', '[',
 					  ']', '~', '-', '=', '_', '!', '1', '2', '3',
-					  '4', '0', '?', '1', '2', '3', '4'};
+					  '4', '5', '6', '7', '8', '0', '?', '1', '2',
+					  '3', '4', '^', 'v', '<', '>'};
 char* block_name[BLOCKS] = {"Air", "Wood", "Leaves", "Grass", "Stone", "Bedrock", "Wool", "Fence",
-							"Left-Facing Door", "Right-Facing Door", "Vines", "Path", "Entrance", "Carpet", "Barrier",
-							"Warp 1", "Warp 2", "Warp 3", "Warp 4", "Warp to Spawn", "Warp to Random Co-ords", "Filewarp 1", "Filewarp 2", "Filewarp 3", "Filewarp 4"};
-bool block_solid_status[BLOCKS] = {false, true, true, true, true, true, true, true, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false};
+							"Left-Facing Door", "Right-Facing Door", "Vines", "Path", "Entrance", "Carpet", "Barrier", "Warp 1",
+							"Warp 2", "Warp 3", "Warp 4", "Warp 5", "Warp 6", "Warp 7", "Warp 8", "Warp to Spawn",
+							"Warp to Random Co-ords", "Filewarp 1", "Filewarp 2", "Filewarp 3", "Filewarp 4", "Zipwire Up", "Zipwire Down", "Zipwire Left",
+							"Zipwire Right"};
+bool block_solid_status[BLOCKS] = {false, true, true, true, true, true, true, true, false,
+								   false, false, false, false, false, true, false, false, false,
+								   false, false, false, false, false, false, false, false, false,
+								   false, false, false, false, false, false};
 
 bool painting = false;
 bool solidity = true;
@@ -159,10 +174,18 @@ void init_colour()
 	init_pair(18, COLOR_BLACK,   COLOR_MAGENTA);
 	init_pair(19, COLOR_BLACK,   COLOR_MAGENTA);
 	init_pair(20, COLOR_BLACK,   COLOR_MAGENTA);
-	init_pair(21, COLOR_BLACK,   COLOR_YELLOW);
-	init_pair(22, COLOR_BLACK,   COLOR_YELLOW);
-	init_pair(23, COLOR_BLACK,   COLOR_YELLOW);
-	init_pair(24, COLOR_BLACK,   COLOR_YELLOW);
+	init_pair(21, COLOR_BLACK,   COLOR_MAGENTA);
+	init_pair(22, COLOR_BLACK,   COLOR_MAGENTA);
+	init_pair(23, COLOR_BLACK,   COLOR_MAGENTA);
+	init_pair(24, COLOR_BLACK,   COLOR_MAGENTA);
+	init_pair(25, COLOR_BLACK,   COLOR_YELLOW);
+	init_pair(26, COLOR_BLACK,   COLOR_YELLOW);
+	init_pair(27, COLOR_BLACK,   COLOR_YELLOW);
+	init_pair(28, COLOR_BLACK,   COLOR_YELLOW);
+	init_pair(29, COLOR_GREEN,   COLOR_BLACK);
+	init_pair(30, COLOR_GREEN,   COLOR_BLACK);
+	init_pair(31, COLOR_GREEN,   COLOR_BLACK);
+	init_pair(32, COLOR_GREEN,   COLOR_BLACK);
 }
 
 void draw_borders()
@@ -250,11 +273,20 @@ void tp(int tp_y, int tp_x, bool respect_solidity, bool respect_warps)
 	if (BLOCK_AT(y, x) == WARP_2 && warps && respect_warps) warp(WARP_2);
 	if (BLOCK_AT(y, x) == WARP_3 && warps && respect_warps) warp(WARP_3);
 	if (BLOCK_AT(y, x) == WARP_4 && warps && respect_warps) warp(WARP_4);
+	if (BLOCK_AT(y, x) == WARP_5 && warps && respect_warps) warp(WARP_5);
+	if (BLOCK_AT(y, x) == WARP_6 && warps && respect_warps) warp(WARP_6);
+	if (BLOCK_AT(y, x) == WARP_7 && warps && respect_warps) warp(WARP_7);
+	if (BLOCK_AT(y, x) == WARP_8 && warps && respect_warps) warp(WARP_8);
 
 	if (BLOCK_AT(y, x) == FILEWARP_1 && warps && respect_warps) load_level(0);
 	if (BLOCK_AT(y, x) == FILEWARP_2 && warps && respect_warps) load_level(1);
 	if (BLOCK_AT(y, x) == FILEWARP_3 && warps && respect_warps) load_level(2);
 	if (BLOCK_AT(y, x) == FILEWARP_4 && warps && respect_warps) load_level(3);
+
+	if (BLOCK_AT(y, x) == ZIPWIRE_UP) tp(y - 1, x, false, true);
+	if (BLOCK_AT(y, x) == ZIPWIRE_DOWN) tp(y + 1, x, false, true);
+	if (BLOCK_AT(y, x) == ZIPWIRE_LEFT) tp(y, x - 1, false, true);
+	if (BLOCK_AT(y, x) == ZIPWIRE_RIGHT) tp(y, x + 1, false, true);
 }
 
 void teleport(bool relative)
