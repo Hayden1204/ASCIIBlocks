@@ -26,34 +26,34 @@
 	#define NAME "ASCIIBlocks"
 #endif
 
-#define VERSION "1.5.0-alpha.10"
+#define VERSION "1.5.0-alpha.11"
 
 #define C_BORDER '+'
 #define H_BORDER '-'
 #define V_BORDER '|'
 
 #define PLAYER 'X'
-#define BLOCKS 33
+#define BLOCKS 34
 
-#define WARP_1 15
-#define WARP_2 16
-#define WARP_3 17
-#define WARP_4 18
-#define WARP_5 19
-#define WARP_6 20
-#define WARP_7 21
-#define WARP_8 22
-#define FILEWARP_1 25
-#define FILEWARP_2 26
-#define FILEWARP_3 27
-#define FILEWARP_4 28
-#define WARP_SPAWN 23
-#define WARP_RANDOM 24
+#define WARP_1 16
+#define WARP_2 17
+#define WARP_3 18
+#define WARP_4 19
+#define WARP_5 20
+#define WARP_6 21
+#define WARP_7 22
+#define WARP_8 23
+#define FILEWARP_1 26
+#define FILEWARP_2 27
+#define FILEWARP_3 28
+#define FILEWARP_4 29
+#define WARP_SPAWN 24
+#define WARP_RANDOM 25
 
-#define ZIPWIRE_UP 29
-#define ZIPWIRE_DOWN 30
-#define ZIPWIRE_LEFT 31
-#define ZIPWIRE_RIGHT 32
+#define ZIPWIRE_UP 30
+#define ZIPWIRE_DOWN 31
+#define ZIPWIRE_LEFT 32
+#define ZIPWIRE_RIGHT 33
 
 #define DEFAULT_WIDTH 96
 #define DEFAULT_HEIGHT 28
@@ -65,7 +65,7 @@
 #define BLOCK_AT(Y, X) map[Y * width + X]
 
 #define LEVEL_SIGNATURE "ASCIIBLOCKS"
-#define OPTIONS 19
+#define OPTIONS 21
 #define LEVELS 4
 
 int width = DEFAULT_WIDTH;
@@ -83,20 +83,21 @@ int spawn_x = 0;
 FILE* file;
 uint8_t* map;
 uint8_t held_block = 1;
-char block[BLOCKS] = {' ', '#', '%', '&', '$', '*', '@', '+', '[',
-					  ']', '~', '-', '=', '_', '!', '1', '2', '3',
-					  '4', '5', '6', '7', '8', '0', '?', '1', '2',
-					  '3', '4', '^', 'v', '<', '>'};
-char* block_name[BLOCKS] = {"Air", "Wood", "Leaves", "Grass", "Stone", "Bedrock", "Wool", "Fence",
-							"Left-Facing Door", "Right-Facing Door", "Vines", "Path", "Entrance", "Carpet", "Barrier", "Warp 1",
+char block[BLOCKS] = {' ', '#', '%', '&', '$', '*', '.', '@', '+',
+					  '[', ']', '~', '-', '=', '_', '!', '1', '2',
+					  '3', '4', '5', '6', '7', '8', '0', '?', '1',
+					  '2', '3', '4', '^', 'v', '<', '>'};
+char* block_name[BLOCKS] = {"Air", "Wood", "Leaves", "Grass", "Stone", "Bedrock", "Pebble", "Wool", "Fence",
+							"Left-Facing Door", "Right-Facing Door", "Vines", "Path", "Gate", "Carpet", "Barrier", "Warp 1",
 							"Warp 2", "Warp 3", "Warp 4", "Warp 5", "Warp 6", "Warp 7", "Warp 8", "Warp to Spawn",
 							"Warp to Random Co-ords", "Filewarp 1", "Filewarp 2", "Filewarp 3", "Filewarp 4", "Zipwire Up", "Zipwire Down", "Zipwire Left",
 							"Zipwire Right"};
-bool block_solid_status[BLOCKS] = {false, true, true, true, true, true, true, true, false,
+bool block_solid_status[BLOCKS] = {false, true, false, false, true, true, false, true, true, false,
 								   false, false, false, false, false, true, false, false, false,
 								   false, false, false, false, false, false, false, false, false,
 								   false, false, false, false, false, false};
 
+bool text = true;
 bool painting = false;
 bool solidity = true;
 bool warps = true;
@@ -104,6 +105,7 @@ bool zipwires = true;
 
 char *option_list[OPTIONS] = {"Back",
 							  "New Level",
+							  "Load Level from level.abl",
 							  "Load Level from level1.asciilvl",
 							  "Load Level from level2.asciilvl",
 							  "Load Level from level3.asciilvl",
@@ -119,6 +121,7 @@ char *option_list[OPTIONS] = {"Back",
 							  "Toggle Warps",
 							  "Toggle Zipwires",
 							  "Toggle Solid Status of Held Block",
+							  "Toggle Text",
 							  "Replace All Instances of One Block with Held Block",
 							  "Fill Level with Held Block"};
 
@@ -135,7 +138,10 @@ void draw_ui();
 void new_level();
 void load_level(int level);
 void save_level(int level);
-void tp(int tp_y, int tp_x, bool respect_solidity, bool respect_warps);
+void load_abl();
+void tp(int tp_y, int tp_x, bool respect_solidity, bool respect_warps, bool respect_zipwires);
+void handle_warps();
+void handle_zipwires();
 void teleport(bool relative);
 void warp(uint8_t warp_id);
 void place_block(int relative_block_y, int relative_block_x, bool condition);
@@ -162,15 +168,15 @@ void init_colour()
 	init_pair(4,  COLOR_WHITE,   COLOR_WHITE);
 	init_pair(5,  COLOR_BLACK,   COLOR_WHITE);
 	init_pair(6,  COLOR_WHITE,   COLOR_BLACK);
-	init_pair(7,  COLOR_YELLOW,  COLOR_BLACK);
-	init_pair(8,  COLOR_RED,     COLOR_BLACK);
-	init_pair(9,  COLOR_BLUE,    COLOR_BLACK);
-	init_pair(10, COLOR_GREEN,   COLOR_BLACK);
-	init_pair(11, COLOR_GREEN,   COLOR_YELLOW);
-	init_pair(12, COLOR_MAGENTA, COLOR_BLACK);
-	init_pair(13, COLOR_WHITE,   COLOR_BLACK);
-	init_pair(14, COLOR_BLACK,   COLOR_RED);
-	init_pair(15, COLOR_BLACK,   COLOR_MAGENTA);
+	init_pair(7,  COLOR_WHITE,   COLOR_BLACK);
+	init_pair(8,  COLOR_YELLOW,  COLOR_BLACK);
+	init_pair(9,  COLOR_RED,     COLOR_BLACK);
+	init_pair(10, COLOR_BLUE,    COLOR_BLACK);
+	init_pair(11, COLOR_GREEN,   COLOR_BLACK);
+	init_pair(12, COLOR_GREEN,   COLOR_YELLOW);
+	init_pair(13, COLOR_MAGENTA, COLOR_BLACK);
+	init_pair(14, COLOR_WHITE,   COLOR_BLACK);
+	init_pair(15, COLOR_BLACK,   COLOR_RED);
 	init_pair(16, COLOR_BLACK,   COLOR_MAGENTA);
 	init_pair(17, COLOR_BLACK,   COLOR_MAGENTA);
 	init_pair(18, COLOR_BLACK,   COLOR_MAGENTA);
@@ -180,14 +186,15 @@ void init_colour()
 	init_pair(22, COLOR_BLACK,   COLOR_MAGENTA);
 	init_pair(23, COLOR_BLACK,   COLOR_MAGENTA);
 	init_pair(24, COLOR_BLACK,   COLOR_MAGENTA);
-	init_pair(25, COLOR_BLACK,   COLOR_YELLOW);
+	init_pair(25, COLOR_BLACK,   COLOR_MAGENTA);
 	init_pair(26, COLOR_BLACK,   COLOR_YELLOW);
 	init_pair(27, COLOR_BLACK,   COLOR_YELLOW);
 	init_pair(28, COLOR_BLACK,   COLOR_YELLOW);
-	init_pair(29, COLOR_GREEN,   COLOR_BLACK);
+	init_pair(29, COLOR_BLACK,   COLOR_YELLOW);
 	init_pair(30, COLOR_GREEN,   COLOR_BLACK);
 	init_pair(31, COLOR_GREEN,   COLOR_BLACK);
 	init_pair(32, COLOR_GREEN,   COLOR_BLACK);
+	init_pair(33, COLOR_GREEN,   COLOR_BLACK);
 }
 
 void draw_borders()
@@ -229,7 +236,7 @@ void load_level(int level)
 	fclose(file);
 	
 	draw_map();
-	tp(0, 0, false, false);
+	tp(0, 0, false, false, false);
 }
 
 void save_level(int level)
@@ -243,23 +250,69 @@ void save_level(int level)
 	fclose(file);
 }
 
-void load_level_menu()
+void load_abl()
 {
-	
+	file = fopen("level.abl", "rb");
+	if (!file) return;
+
+	free(map);
+
+	width = 32;
+	height = 16;
+
+	map = calloc(MAP_SIZE, sizeof (uint8_t));
+
+	for (int i = 0; i < MAP_SIZE; i++) {
+		switch (fgetc(file)) {
+			case '.':
+				map[i] = 6;
+				break;
+			case '#':
+				map[i] = 1;
+				break;
+			case '@':
+				map[i] = 7;
+				break;
+			case '*':
+				map[i] = 5;
+				break;
+			case '&':
+				map[i] = 3;
+				break;
+			case 'O':
+				map[i] = 4;
+				break;
+			case '[':
+				map[i] = 9;
+				break;
+			case ']':
+				map[i] = 10;
+				break;
+			case '-':
+				map[i] = 12;
+				break;
+			case '~':
+				map[i] = 11;
+				break;
+			case '=':
+				map[i] = 13;
+				break;
+		}
+	}
+
+	fclose(file);
+
+	draw_ui();
+	tp(0, 0, false, false, false);
 }
 
-void save_level_menu()
-{
-	
-}
-
-void tp(int tp_y, int tp_x, bool respect_solidity, bool respect_warps)
+void tp(int tp_y, int tp_x, bool respect_solidity, bool respect_warps, bool respect_zipwires)
 {
 	getyx(stdscr, cursor_y, cursor_x);
 
 	if (tp_y < 0 || tp_y >= height) return;
 	if (tp_x < 0 || tp_x >= width) return;
-	if (block_solid_status[BLOCK_AT(tp_y, tp_x)] && solidity && respect_solidity) return;
+	if (block_solid_status[BLOCK_AT(tp_y, tp_x)] && respect_solidity) return;
 
 	attron(COLOR_PAIR(BLOCK_AT(y, x)));
 	mvaddch(cursor_y, cursor_x - 1, block[BLOCK_AT(y, x)]);
@@ -269,27 +322,74 @@ void tp(int tp_y, int tp_x, bool respect_solidity, bool respect_warps)
 	y = tp_y;
 	x = tp_x;
 
-	if (BLOCK_AT(y, x) == WARP_SPAWN && warps && respect_warps) tp(spawn_y, spawn_x, false, true);
-	if (BLOCK_AT(y, x) == WARP_RANDOM && warps && respect_warps) tp(rand() % height, rand() % width, false, true);
+	if (respect_warps) handle_warps();
+	if (respect_zipwires) handle_zipwires();
+}
 
-	if (BLOCK_AT(y, x) == WARP_1 && warps && respect_warps) warp(WARP_1);
-	if (BLOCK_AT(y, x) == WARP_2 && warps && respect_warps) warp(WARP_2);
-	if (BLOCK_AT(y, x) == WARP_3 && warps && respect_warps) warp(WARP_3);
-	if (BLOCK_AT(y, x) == WARP_4 && warps && respect_warps) warp(WARP_4);
-	if (BLOCK_AT(y, x) == WARP_5 && warps && respect_warps) warp(WARP_5);
-	if (BLOCK_AT(y, x) == WARP_6 && warps && respect_warps) warp(WARP_6);
-	if (BLOCK_AT(y, x) == WARP_7 && warps && respect_warps) warp(WARP_7);
-	if (BLOCK_AT(y, x) == WARP_8 && warps && respect_warps) warp(WARP_8);
+void handle_warps()
+{
+	switch (BLOCK_AT(y, x)) {
+		case WARP_SPAWN:
+			tp(spawn_y, spawn_x, false, warps, zipwires);
+			break;
+		case WARP_RANDOM:
+			tp(rand() % height, rand() % width, false, warps, zipwires);
+			break;
+		case WARP_1:
+			warp(WARP_1);
+			break;
+		case WARP_2:
+			warp(WARP_2);
+			break;
+		case WARP_3:
+			warp(WARP_3);
+			break;
+		case WARP_4:
+			warp(WARP_4);
+			break;
+		case WARP_5:
+			warp(WARP_5);
+			break;
+		case WARP_6:
+			warp(WARP_6);
+			break;
+		case WARP_7:
+			warp(WARP_7);
+			break;
+		case WARP_8:
+			warp(WARP_8);
+			break;
+		case FILEWARP_1:
+			load_level(0);
+			break;
+		case FILEWARP_2:
+			load_level(1);
+			break;
+		case FILEWARP_3:
+			load_level(2);
+			break;
+		case FILEWARP_4:
+			load_level(3);
+			break;
+	}
+}
 
-	if (BLOCK_AT(y, x) == FILEWARP_1 && warps && respect_warps) load_level(0);
-	if (BLOCK_AT(y, x) == FILEWARP_2 && warps && respect_warps) load_level(1);
-	if (BLOCK_AT(y, x) == FILEWARP_3 && warps && respect_warps) load_level(2);
-	if (BLOCK_AT(y, x) == FILEWARP_4 && warps && respect_warps) load_level(3);
-
-	if (BLOCK_AT(y, x) == ZIPWIRE_UP && zipwires) tp(y - 1, x, false, true);
-	if (BLOCK_AT(y, x) == ZIPWIRE_DOWN && zipwires) tp(y + 1, x, false, true);
-	if (BLOCK_AT(y, x) == ZIPWIRE_LEFT && zipwires) tp(y, x - 1, false, true);
-	if (BLOCK_AT(y, x) == ZIPWIRE_RIGHT && zipwires) tp(y, x + 1, false, true);
+void handle_zipwires()
+{
+	switch (BLOCK_AT(y, x)) {
+		case ZIPWIRE_UP:
+			tp(y - 1, x, false, warps, zipwires);
+			break;
+		case ZIPWIRE_DOWN:
+			tp(y + 1, x, false, warps, zipwires);
+			break;
+		case ZIPWIRE_LEFT:
+			tp(y, x - 1, false, warps, zipwires);
+			break;
+		case ZIPWIRE_RIGHT:
+			tp(y, x + 1, false, warps, zipwires);
+			break;
+	}
 }
 
 void teleport(bool relative)
@@ -312,9 +412,9 @@ void teleport(bool relative)
 	draw_ui();
 
 	if (relative) {
-		tp(new_y + y, new_x + x, false, true);
+		tp(new_y + y, new_x + x, false, warps, zipwires);
 	} else {
-		tp(new_y, new_x, false, true);
+		tp(new_y, new_x, false, warps, zipwires);
 	}
 }
 
@@ -323,7 +423,7 @@ void warp(uint8_t warp_id)
 	for (int i = 0; i < height; i++) {
 		for (int j = 0; j < width; j++) {
 			if (BLOCK_AT(i, j) == warp_id && (i != y || j != x)) {
-				tp(i, j, false, false);
+				tp(i, j, false, false, false);
 				return;
 			}
 		}
@@ -334,22 +434,24 @@ void draw_ui()
 {
 	clear();
 
-	mvprintw(0, width + 4, "%s %s\n", NAME, VERSION);
-	mvprintw(1, width + 4, "by Hayden\n");
+	if (text) {
+		mvprintw(0, width + 4, "%s %s\n", NAME, VERSION);
+		mvprintw(1, width + 4, "by Hayden\n");
 	
-	mvprintw(3, width + 4, "Use WASD to move,\n");
-	mvprintw(4, width + 4, "IJKL to place and remove blocks\n");
-	mvprintw(5, width + 4, "and F or H to select blocks.\n");
+		mvprintw(3, width + 4, "Use WASD to move,\n");
+		mvprintw(4, width + 4, "IJKL to place and remove blocks\n");
+		mvprintw(5, width + 4, "and F or H to select blocks.\n");
 	
-	mvprintw(7, width + 4, "Use M to open the menu\n");
-	mvprintw(8, width + 4, "and CTRL-C to quit the game.\n");
+		mvprintw(7, width + 4, "Use M to open the menu\n");
+		mvprintw(8, width + 4, "and CTRL-C to quit the game.\n");
 	
-	mvprintw(16, width + 4, "Block Texture:\n");
+		mvprintw(16, width + 4, "Block Texture:\n");
+	}
 
 	draw_borders();
 	draw_map();
 	
-	tp(y, x, false, false);
+	tp(y, x, false, false, false);
 }
 
 void place_block(int relative_block_y, int relative_block_x, bool condition)
@@ -407,7 +509,7 @@ void new_level()
 	
 	draw_ui();
 
-	tp(0, 0, false, false);
+	tp(0, 0, false, false, false);
 }
 
 void replace_all()
@@ -446,54 +548,60 @@ void option(int i)
 			new_level();
 			break;
 		case 2:
-			load_level(0);
+			load_abl();
 			break;
 		case 3:
-			load_level(1);
+			load_level(0);
 			break;
 		case 4:
-			load_level(2);
+			load_level(1);
 			break;
 		case 5:
-			load_level(3);
+			load_level(2);
 			break;
 		case 6:
-			save_level(0);
+			load_level(3);
 			break;
 		case 7:
-			save_level(1);
+			save_level(0);
 			break;
 		case 8:
-			save_level(2);
+			save_level(1);
 			break;
 		case 9:
-			save_level(3);
+			save_level(2);
 			break;
 		case 10:
-			teleport(false);
+			save_level(3);
 			break;
 		case 11:
-			teleport(true);
+			teleport(false);
 			break;
 		case 12:
-			toggle(&painting);
+			teleport(true);
 			break;
 		case 13:
-			toggle(&solidity);
+			toggle(&painting);
 			break;
 		case 14:
-			toggle(&warps);
+			toggle(&solidity);
 			break;
 		case 15:
-			toggle(&zipwires);
+			toggle(&warps);
 			break;
 		case 16:
-			toggle(&block_solid_status[held_block]);
+			toggle(&zipwires);
 			break;
 		case 17:
-			replace_all();
+			toggle(&block_solid_status[held_block]);
 			break;
 		case 18:
+			toggle(&text);
+			break;
+		case 19:
+			replace_all();
+			break;
+		case 20:
 			fill_all();
 			break;
 	}
@@ -551,42 +659,46 @@ int main(void)
 	
 	while (1) {
 		getyx(stdscr, cursor_y, cursor_x);
-		mvprintw(10, width + 4, "X: %i\n", x);
-		mvprintw(11, width + 4, "Y: %i\n", y);
-		
-		mvprintw(13, width + 4, "Spawn X: %i\n", spawn_x);
-		mvprintw(14, width + 4, "Spawn Y: %i\n", spawn_y);
-		
-		attron(COLOR_PAIR(held_block));
-		mvaddch(16, width + 19, block[held_block]);
-		attroff(COLOR_PAIR(held_block));
 
-		mvprintw(17, width + 4, "Block ID: %i\n", held_block);
-		mvprintw(18, width + 4, "Block Name: %s\n", block_name[held_block]);
-		mvprintw(19, width + 4, "Block Solid Status: %s\n", block_solid_status[held_block] ? "Solid" : "Non-Solid");
+		if (text) {
+			mvprintw(10, width + 4, "X: %i\n", x);
+			mvprintw(11, width + 4, "Y: %i\n", y);
+		
+			mvprintw(13, width + 4, "Spawn X: %i\n", spawn_x);
+			mvprintw(14, width + 4, "Spawn Y: %i\n", spawn_y);
+		
+			attron(COLOR_PAIR(held_block));
+			mvaddch(16, width + 19, block[held_block]);
+			attroff(COLOR_PAIR(held_block));
 
-		mvprintw(21, width + 4, "Painting: %s\n", painting ? "Enabled" : "Disabled");		
-		mvprintw(22, width + 4, "Solidity: %s\n", solidity ? "Enabled" : "Disabled");
-		mvprintw(23, width + 4, "Warps: %s\n", warps ? "Enabled" : "Disabled");
-		mvprintw(24, width + 4, "Zipwires: %s\n", zipwires ? "Enabled" : "Disabled");
-		move(cursor_y, cursor_x);
+			mvprintw(17, width + 4, "Block ID: %i\n", held_block);
+			mvprintw(18, width + 4, "Block Name: %s\n", block_name[held_block]);
+			mvprintw(19, width + 4, "Block Solid Status: %s\n", block_solid_status[held_block] ? "Solid" : "Non-Solid");
+
+			mvprintw(21, width + 4, "Painting: %s\n", painting ? "Enabled" : "Disabled");		
+			mvprintw(22, width + 4, "Solidity: %s\n", solidity ? "Enabled" : "Disabled");
+			mvprintw(23, width + 4, "Warps: %s\n", warps ? "Enabled" : "Disabled");
+			mvprintw(24, width + 4, "Zipwires: %s\n", zipwires ? "Enabled" : "Disabled");
+
+			move(cursor_y, cursor_x);
+		}
 		
 		switch (getch()) {
 			case 'w':
 			case KEY_UP:
-				tp(y - 1, x, true, true);
+				tp(y - 1, x, solidity, warps, zipwires);
 				break;
 			case 's':
 			case KEY_DOWN:
-				tp(y + 1, x, true, true);
+				tp(y + 1, x, solidity, warps, zipwires);
 				break;
 			case 'a':
 			case KEY_LEFT:
-				tp(y, x - 1, true, true);
+				tp(y, x - 1, solidity, warps, zipwires);
 				break;
 			case 'd':
 			case KEY_RIGHT:
-				tp(y, x + 1, true, true);
+				tp(y, x + 1, solidity, warps, zipwires);
 				break;
 			case 'i':
 				place_block(-1, 0, y > 0);
@@ -605,7 +717,7 @@ int main(void)
 				spawn_x = x;
 				break;
 			case 'r':
-				tp(spawn_y, spawn_x, false, true);
+				tp(spawn_y, spawn_x, false, warps, zipwires);
 				break;
 			case 'f':
 				held_block = (held_block - 1 + BLOCKS) % BLOCKS;
