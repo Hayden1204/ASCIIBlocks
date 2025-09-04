@@ -26,7 +26,7 @@
 	#define NAME "ASCIIBlocks"
 #endif
 
-#define VERSION "1.5.0-alpha.9"
+#define VERSION "1.5.0-alpha.10"
 
 #define C_BORDER '+'
 #define H_BORDER '-'
@@ -65,7 +65,7 @@
 #define BLOCK_AT(Y, X) map[Y * width + X]
 
 #define LEVEL_SIGNATURE "ASCIIBLOCKS"
-#define OPTIONS 18
+#define OPTIONS 19
 #define LEVELS 4
 
 int width = DEFAULT_WIDTH;
@@ -100,6 +100,7 @@ bool block_solid_status[BLOCKS] = {false, true, true, true, true, true, true, tr
 bool painting = false;
 bool solidity = true;
 bool warps = true;
+bool zipwires = true;
 
 char *option_list[OPTIONS] = {"Back",
 							  "New Level",
@@ -116,6 +117,7 @@ char *option_list[OPTIONS] = {"Back",
 							  "Toggle Painting",
 							  "Toggle Solidity",
 							  "Toggle Warps",
+							  "Toggle Zipwires",
 							  "Toggle Solid Status of Held Block",
 							  "Replace All Instances of One Block with Held Block",
 							  "Fill Level with Held Block"};
@@ -248,6 +250,7 @@ void load_level_menu()
 
 void save_level_menu()
 {
+	
 }
 
 void tp(int tp_y, int tp_x, bool respect_solidity, bool respect_warps)
@@ -283,10 +286,10 @@ void tp(int tp_y, int tp_x, bool respect_solidity, bool respect_warps)
 	if (BLOCK_AT(y, x) == FILEWARP_3 && warps && respect_warps) load_level(2);
 	if (BLOCK_AT(y, x) == FILEWARP_4 && warps && respect_warps) load_level(3);
 
-	if (BLOCK_AT(y, x) == ZIPWIRE_UP) tp(y - 1, x, false, true);
-	if (BLOCK_AT(y, x) == ZIPWIRE_DOWN) tp(y + 1, x, false, true);
-	if (BLOCK_AT(y, x) == ZIPWIRE_LEFT) tp(y, x - 1, false, true);
-	if (BLOCK_AT(y, x) == ZIPWIRE_RIGHT) tp(y, x + 1, false, true);
+	if (BLOCK_AT(y, x) == ZIPWIRE_UP && zipwires) tp(y - 1, x, false, true);
+	if (BLOCK_AT(y, x) == ZIPWIRE_DOWN && zipwires) tp(y + 1, x, false, true);
+	if (BLOCK_AT(y, x) == ZIPWIRE_LEFT && zipwires) tp(y, x - 1, false, true);
+	if (BLOCK_AT(y, x) == ZIPWIRE_RIGHT && zipwires) tp(y, x + 1, false, true);
 }
 
 void teleport(bool relative)
@@ -482,12 +485,15 @@ void option(int i)
 			toggle(&warps);
 			break;
 		case 15:
-			toggle(&block_solid_status[held_block]);
+			toggle(&zipwires);
 			break;
 		case 16:
-			replace_all();
+			toggle(&block_solid_status[held_block]);
 			break;
 		case 17:
+			replace_all();
+			break;
+		case 18:
 			fill_all();
 			break;
 	}
@@ -562,6 +568,7 @@ int main(void)
 		mvprintw(21, width + 4, "Painting: %s\n", painting ? "Enabled" : "Disabled");		
 		mvprintw(22, width + 4, "Solidity: %s\n", solidity ? "Enabled" : "Disabled");
 		mvprintw(23, width + 4, "Warps: %s\n", warps ? "Enabled" : "Disabled");
+		mvprintw(24, width + 4, "Zipwires: %s\n", zipwires ? "Enabled" : "Disabled");
 		move(cursor_y, cursor_x);
 		
 		switch (getch()) {
