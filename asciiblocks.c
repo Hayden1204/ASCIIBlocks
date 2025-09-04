@@ -26,7 +26,7 @@
 	#define NAME "ASCIIBlocks"
 #endif
 
-#define VERSION "1.5.0-alpha.6"
+#define VERSION "1.5.0-alpha.7"
 
 #define C_BORDER '+'
 #define H_BORDER '-'
@@ -56,7 +56,7 @@
 #define BLOCK_AT(Y, X) map[Y * width + X]
 
 #define LEVEL_SIGNATURE "ASCIIBLOCKS"
-#define OPTIONS 13
+#define OPTIONS 18
 #define LEVELS 4
 
 int width = DEFAULT_WIDTH;
@@ -82,14 +82,20 @@ char* block_name[BLOCKS] = {"Air", "Wood", "Leaves", "Grass", "Stone", "Bedrock"
 							"Warp 1", "Warp 2", "Warp 3", "Warp 4", "Warp to Spawn", "Warp to Random Co-ords", "Filewarp 1", "Filewarp 2", "Filewarp 3", "Filewarp 4"};
 bool block_solid_status[BLOCKS] = {false, true, true, true, true, true, true, true, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false};
 
-bool solidity = true;
 bool painting = false;
+bool solidity = true;
 bool warps = true;
 
 char *option_list[OPTIONS] = {"Back",
 							  "New Level",
-							  "Load Level",
-							  "Save Level",
+							  "Load Level from level1.asciilvl",
+							  "Load Level from level2.asciilvl",
+							  "Load Level from level3.asciilvl",
+							  "Load Level from level4.asciilvl",
+							  "Save Level to level1.asciilvl",
+							  "Save Level to level2.asciilvl",
+							  "Save Level to level3.asciilvl",
+							  "Save Level to level4.asciilvl",
 							  "Teleport",
 							  "Teleport Relative",
 							  "Toggle Painting",
@@ -97,8 +103,7 @@ char *option_list[OPTIONS] = {"Back",
 							  "Toggle Warps",
 							  "Toggle Solid Status of Held Block",
 							  "Replace All Instances of One Block with Held Block",
-							  "Fill Level with Held Block",
-							  "Roll a Dice"};
+							  "Fill Level with Held Block"};
 
 char *level_list[LEVELS] = {"level1.asciilvl",
 							"level2.asciilvl",
@@ -109,17 +114,15 @@ void toggle(bool *boolean);
 void init_colour();
 void draw_borders();
 void draw_map();
+void draw_ui();
+void new_level();
 void load_level(int level);
 void save_level(int level);
-void save_level_menu();
-void load_level_menu();
 void tp(int tp_y, int tp_x, bool respect_solidity, bool respect_warps);
 void teleport(bool relative);
-void draw_ui();
+void warp(uint8_t warp_id);
 void place_block(int relative_block_y, int relative_block_x, bool condition);
 void set_block(int set_block_y, int set_block_x, bool remove_block_if_present);
-void roll_a_dice();
-void new_level();
 void replace_all();
 void fill_all();
 void option(int i);
@@ -240,13 +243,18 @@ void tp(int tp_y, int tp_x, bool respect_solidity, bool respect_warps)
 	y = tp_y;
 	x = tp_x;
 
-	if (BLOCK_AT(tp_y, tp_x) == WARP_SPAWN && warps && respect_warps) tp(spawn_y, spawn_x, false, true);
-	if (BLOCK_AT(tp_y, tp_x) == WARP_RANDOM && warps && respect_warps) tp(rand() % height, rand() % width, false, true);
+	if (BLOCK_AT(y, x) == WARP_SPAWN && warps && respect_warps) tp(spawn_y, spawn_x, false, true);
+	if (BLOCK_AT(y, x) == WARP_RANDOM && warps && respect_warps) tp(rand() % height, rand() % width, false, true);
 
-	if (BLOCK_AT(tp_y, tp_x) == FILEWARP_1 && warps && respect_warps) load_level(0);
-	if (BLOCK_AT(tp_y, tp_x) == FILEWARP_2 && warps && respect_warps) load_level(1);
-	if (BLOCK_AT(tp_y, tp_x) == FILEWARP_3 && warps && respect_warps) load_level(2);
-	if (BLOCK_AT(tp_y, tp_x) == FILEWARP_4 && warps && respect_warps) load_level(3);
+	if (BLOCK_AT(y, x) == WARP_1 && warps && respect_warps) warp(WARP_1);
+	if (BLOCK_AT(y, x) == WARP_2 && warps && respect_warps) warp(WARP_2);
+	if (BLOCK_AT(y, x) == WARP_3 && warps && respect_warps) warp(WARP_3);
+	if (BLOCK_AT(y, x) == WARP_4 && warps && respect_warps) warp(WARP_4);
+
+	if (BLOCK_AT(y, x) == FILEWARP_1 && warps && respect_warps) load_level(0);
+	if (BLOCK_AT(y, x) == FILEWARP_2 && warps && respect_warps) load_level(1);
+	if (BLOCK_AT(y, x) == FILEWARP_3 && warps && respect_warps) load_level(2);
+	if (BLOCK_AT(y, x) == FILEWARP_4 && warps && respect_warps) load_level(3);
 }
 
 void teleport(bool relative)
@@ -272,6 +280,18 @@ void teleport(bool relative)
 		tp(new_y + y, new_x + x, false, true);
 	} else {
 		tp(new_y, new_x, false, true);
+	}
+}
+
+void warp(uint8_t warp_id)
+{
+	for (int i = 0; i < height; i++) {
+		for (int j = 0; j < width; j++) {
+			if (BLOCK_AT(i, j) == warp_id && (i != y || j != x)) {
+				tp(i, j, false, false);
+				return;
+			}
+		}
 	}
 }
 
@@ -314,16 +334,6 @@ void set_block(int set_block_y, int set_block_x, bool remove_block_if_present)
 	if (set_block_y < 0 || set_block_y >= height) return;
 	if (set_block_x < 0 || set_block_x >= width) return;
 	
-}
-
-void roll_a_dice()
-{
-	clear();
-
-	printw("You rolled a %d.\n", rand() % 6 + 1);
-	getch();
-
-	draw_ui();
 }
 
 void new_level()
@@ -393,34 +403,49 @@ void option(int i)
 			load_level(0);
 			break;
 		case 3:
-			save_level(0);
+			load_level(1);
 			break;
 		case 4:
-			teleport(false);
+			load_level(2);
 			break;
 		case 5:
-			teleport(true);
+			load_level(3);
 			break;
 		case 6:
-			toggle(&painting);
+			save_level(0);
 			break;
 		case 7:
-			toggle(&solidity);
+			save_level(1);
 			break;
 		case 8:
-			toggle(&warps);
+			save_level(2);
 			break;
 		case 9:
-			toggle(&block_solid_status[held_block]);
+			save_level(3);
 			break;
 		case 10:
-			replace_all();
+			teleport(false);
 			break;
 		case 11:
-			fill_all();
+			teleport(true);
 			break;
 		case 12:
-			roll_a_dice();
+			toggle(&painting);
+			break;
+		case 13:
+			toggle(&solidity);
+			break;
+		case 14:
+			toggle(&warps);
+			break;
+		case 15:
+			toggle(&block_solid_status[held_block]);
+			break;
+		case 16:
+			replace_all();
+			break;
+		case 17:
+			fill_all();
 			break;
 	}
 	
