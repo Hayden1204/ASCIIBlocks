@@ -26,7 +26,7 @@
 	#define NAME "ASCIIBlocks"
 #endif
 
-#define VERSION "1.5.0-alpha.7"
+#define VERSION "1.5.0-alpha.8"
 
 #define C_BORDER '+'
 #define H_BORDER '-'
@@ -264,11 +264,11 @@ void teleport(bool relative)
 	echo();
 
 	int new_x = x;
-	printw("X: ");
+	printw("X: %s", relative ? "~" : "");
 	scanw(" %d", &new_x);
 
 	int new_y = y;
-	printw("Y: ");
+	printw("Y: %s", relative ? "~" : "");
 	scanw(" %d", &new_y);
 
 	curs_set(0);
@@ -320,12 +320,23 @@ void draw_ui()
 void place_block(int relative_block_y, int relative_block_x, bool condition)
 {
 	if (condition) {
-		attron(COLOR_PAIR(RELATIVE_BLOCK(relative_block_y, relative_block_x) ? 0 : held_block));
-		mvaddch(cursor_y + relative_block_y, cursor_x + relative_block_x - 1, block[PLACE_RELATIVE_BLOCK(relative_block_y, relative_block_x)]);
-		attroff(COLOR_PAIR(RELATIVE_BLOCK(relative_block_y, relative_block_x) ? 0 : held_block));
-		move(cursor_y, cursor_x);
+		if (painting) {
+			attron(COLOR_PAIR(held_block));
+			mvaddch(cursor_y + relative_block_y, cursor_x + relative_block_x - 1, block[held_block]);
+			attroff(COLOR_PAIR(held_block));
+		} else {
+			attron(COLOR_PAIR(RELATIVE_BLOCK(relative_block_y, relative_block_x) ? 0 : held_block));
+			mvaddch(cursor_y + relative_block_y, cursor_x + relative_block_x - 1, block[PLACE_RELATIVE_BLOCK(relative_block_y, relative_block_x)]);
+			attroff(COLOR_PAIR(RELATIVE_BLOCK(relative_block_y, relative_block_x) ? 0 : held_block));
+		}
 		
-		RELATIVE_BLOCK(relative_block_y, relative_block_x) = PLACE_RELATIVE_BLOCK(relative_block_y, relative_block_x);
+		move(cursor_y, cursor_x);
+
+		if (painting) {
+			RELATIVE_BLOCK(relative_block_y, relative_block_x) = held_block;
+		} else {
+			RELATIVE_BLOCK(relative_block_y, relative_block_x) = PLACE_RELATIVE_BLOCK(relative_block_y, relative_block_x);
+		}
 	}
 }
 
