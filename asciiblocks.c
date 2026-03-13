@@ -26,7 +26,7 @@
 	#define NAME "ASCIIBlocks"
 #endif
 
-#define VERSION "1.5.0-alpha.11"
+#define VERSION "1.5.0"
 
 #define C_BORDER '+'
 #define H_BORDER '-'
@@ -65,7 +65,7 @@
 #define BLOCK_AT(Y, X) map[Y * width + X]
 
 #define LEVEL_SIGNATURE "ASCIIBLOCKS"
-#define OPTIONS 21
+#define OPTIONS 22
 #define LEVELS 4
 
 int width = DEFAULT_WIDTH;
@@ -83,6 +83,7 @@ int spawn_x = 0;
 FILE* file;
 uint8_t* map;
 uint8_t held_block = 1;
+char username[33] = "Max";
 char block[BLOCKS] = {' ', '#', '%', '&', '$', '*', '.', '@', '+',
 					  '[', ']', '~', '-', '=', '_', '!', '1', '2',
 					  '3', '4', '5', '6', '7', '8', '0', '?', '1',
@@ -123,7 +124,8 @@ char *option_list[OPTIONS] = {"Back",
 							  "Toggle Solid Status of Held Block",
 							  "Toggle Text",
 							  "Replace All Instances of One Block with Held Block",
-							  "Fill Level with Held Block"};
+							  "Fill Level with Held Block",
+							  "Change Username"};
 
 char *level_list[LEVELS] = {"level1.asciilvl",
 							"level2.asciilvl",
@@ -148,6 +150,7 @@ void place_block(int relative_block_y, int relative_block_x, bool condition);
 void set_block(int set_block_y, int set_block_x, bool remove_block_if_present);
 void replace_all();
 void fill_all();
+void change_username();
 void option(int i);
 void options_menu();
 int main(void);
@@ -336,28 +339,14 @@ void handle_warps()
 			tp(rand() % height, rand() % width, false, warps, zipwires);
 			break;
 		case WARP_1:
-			warp(WARP_1);
-			break;
 		case WARP_2:
-			warp(WARP_2);
-			break;
 		case WARP_3:
-			warp(WARP_3);
-			break;
 		case WARP_4:
-			warp(WARP_4);
-			break;
 		case WARP_5:
-			warp(WARP_5);
-			break;
 		case WARP_6:
-			warp(WARP_6);
-			break;
 		case WARP_7:
-			warp(WARP_7);
-			break;
 		case WARP_8:
-			warp(WARP_8);
+			warp(BLOCK_AT(y, x));
 			break;
 		case FILEWARP_1:
 			load_level(0);
@@ -541,6 +530,21 @@ void fill_all()
 	draw_map();
 }
 
+void change_username()
+{
+	clear();
+	curs_set(1);
+	echo();
+	
+	printw("Username: ");
+	scanw(" %32s", &username);
+	
+	curs_set(0);
+	noecho();
+	
+	draw_ui();
+}
+
 void option(int i)
 {
 	switch (i) {
@@ -551,28 +555,16 @@ void option(int i)
 			load_abl();
 			break;
 		case 3:
-			load_level(0);
-			break;
 		case 4:
-			load_level(1);
-			break;
 		case 5:
-			load_level(2);
-			break;
 		case 6:
-			load_level(3);
+			load_level(i - 3);
 			break;
 		case 7:
-			save_level(0);
-			break;
 		case 8:
-			save_level(1);
-			break;
 		case 9:
-			save_level(2);
-			break;
 		case 10:
-			save_level(3);
+			save_level(i - 7);
 			break;
 		case 11:
 			teleport(false);
@@ -603,6 +595,9 @@ void option(int i)
 			break;
 		case 20:
 			fill_all();
+			break;
+		case 21:
+			change_username();
 			break;
 	}
 	
@@ -679,6 +674,8 @@ int main(void)
 			mvprintw(22, width + 4, "Solidity: %s\n", solidity ? "Enabled" : "Disabled");
 			mvprintw(23, width + 4, "Warps: %s\n", warps ? "Enabled" : "Disabled");
 			mvprintw(24, width + 4, "Zipwires: %s\n", zipwires ? "Enabled" : "Disabled");
+
+			mvprintw(26, width + 4, "Username: %s\n", username);
 
 			move(cursor_y, cursor_x);
 		}
