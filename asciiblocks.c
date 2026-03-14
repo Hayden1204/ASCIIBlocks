@@ -26,7 +26,11 @@
 	#define NAME "ASCIIBlocks"
 #endif
 
+#ifndef MESON_VERSION
 #define VERSION "1.5.0"
+#else
+#define VERSION MESON_VERSION
+#endif
 
 #define C_BORDER '+'
 #define H_BORDER '-'
