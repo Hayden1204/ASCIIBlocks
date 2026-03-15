@@ -1,4 +1,4 @@
-// Copyright 2025 Hayden
+// Copyright 2026 Hayden
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,47 +26,41 @@
 	#define NAME "ASCIIBlocks"
 #endif
 
-#define VERSION "1.5.0"
+#define VERSION "1.6.0-alpha.1"
 
 #define C_BORDER '+'
 #define H_BORDER '-'
 #define V_BORDER '|'
 
-#define PLAYER 'X'
-#define BLOCKS 34
-
-#define WARP_1 16
-#define WARP_2 17
-#define WARP_3 18
-#define WARP_4 19
-#define WARP_5 20
-#define WARP_6 21
-#define WARP_7 22
-#define WARP_8 23
-#define FILEWARP_1 26
-#define FILEWARP_2 27
-#define FILEWARP_3 28
-#define FILEWARP_4 29
-#define WARP_SPAWN 24
-#define WARP_RANDOM 25
-
-#define ZIPWIRE_UP 30
-#define ZIPWIRE_DOWN 31
-#define ZIPWIRE_LEFT 32
-#define ZIPWIRE_RIGHT 33
+#define BLOCKS 39
 
 #define DEFAULT_WIDTH 96
 #define DEFAULT_HEIGHT 28
 
 #define MAP_SIZE width * height
-
-#define RELATIVE_BLOCK(Y, X) map[(y + Y) * width + (x + X)]
-#define PLACE_RELATIVE_BLOCK(Y, X) (RELATIVE_BLOCK(Y, X) == 0) ? held_block : 0
-#define BLOCK_AT(Y, X) map[Y * width + X]
+#define BLOCK(Y, X) map[Y * width + X]
+#define PLACE_BLOCK(Y, X) BLOCK(Y, X) ? 0 : held_block
 
 #define LEVEL_SIGNATURE "ASCIIBLOCKS"
-#define OPTIONS 22
-#define LEVELS 4
+#define OPTIONS 18
+#define LEVELS 8
+
+#define NONSOLID 0
+#define SOLID 1
+#define BARRIER 2
+#define WARP 3
+#define SPAWN_WARP 4
+#define RANDOM_WARP 5
+#define FILEWARP 6
+#define ZIPWIRE_UP 7
+#define ZIPWIRE_DOWN 8
+#define ZIPWIRE_LEFT 9
+#define ZIPWIRE_RIGHT 10
+#define COIN 11
+
+#define BLOCK_TYPES 12
+
+#define IS_ENABLED(CONDITION) CONDITION ? "Enabled" : "Disabled"
 
 int width = DEFAULT_WIDTH;
 int height = DEFAULT_HEIGHT;
@@ -84,55 +78,106 @@ FILE* file;
 uint8_t* map;
 uint8_t held_block = 1;
 char username[33] = "Max";
+char skin = 'X';
+unsigned int coin_count = 0;
+bool challenge = 0;
 char block[BLOCKS] = {' ', '#', '%', '&', '$', '*', '.', '@', '+',
 					  '[', ']', '~', '-', '=', '_', '!', '1', '2',
 					  '3', '4', '5', '6', '7', '8', '0', '?', '1',
-					  '2', '3', '4', '^', 'v', '<', '>'};
-char* block_name[BLOCKS] = {"Air", "Wood", "Leaves", "Grass", "Stone", "Bedrock", "Pebble", "Wool", "Fence",
-							"Left-Facing Door", "Right-Facing Door", "Vines", "Path", "Gate", "Carpet", "Barrier", "Warp 1",
-							"Warp 2", "Warp 3", "Warp 4", "Warp 5", "Warp 6", "Warp 7", "Warp 8", "Warp to Spawn",
-							"Warp to Random Co-ords", "Filewarp 1", "Filewarp 2", "Filewarp 3", "Filewarp 4", "Zipwire Up", "Zipwire Down", "Zipwire Left",
-							"Zipwire Right"};
-bool block_solid_status[BLOCKS] = {false, true, false, false, true, true, false, true, true, false,
-								   false, false, false, false, false, true, false, false, false,
-								   false, false, false, false, false, false, false, false, false,
-								   false, false, false, false, false, false};
+					  '2', '3', '4', '5', '6', '7', '8', '^', 'v',
+					  '<', '>', 'o'};
+char* block_name[BLOCKS] = {"Air",
+							"Wood",
+							"Leaves",
+							"Grass",
+							"Stone",
+							"Bedrock",
+							"Pebble",
+							"Wool",
+							"Fence",
+							"Left-Facing Door",
+							"Right-Facing Door",
+							"Vines",
+							"Path",
+							"Gate",
+							"Carpet",
+							"Barrier",
+							"Warp 1",
+							"Warp 2",
+							"Warp 3",
+							"Warp 4",
+							"Warp 5",
+							"Warp 6",
+							"Warp 7",
+							"Warp 8",
+							"Warp to Spawn",
+							"Warp to Random Co-ords",
+							"Filewarp 1",
+							"Filewarp 2",
+							"Filewarp 3",
+							"Filewarp 4",
+							"Filewarp 5",
+							"Filewarp 6",
+							"Filewarp 7",
+							"Filewarp 8",
+							"Zipwire Up",
+							"Zipwire Down",
+							"Zipwire Left",
+							"Zipwire Right",
+							"Coin"};
+uint8_t block_type[BLOCKS] = {NONSOLID, SOLID, NONSOLID, NONSOLID, SOLID, SOLID, NONSOLID, SOLID, SOLID, NONSOLID,
+							  NONSOLID, NONSOLID, NONSOLID, NONSOLID, NONSOLID, BARRIER, WARP, WARP, WARP, WARP,
+							  WARP, WARP, WARP, WARP, SPAWN_WARP, RANDOM_WARP, FILEWARP, FILEWARP, FILEWARP, FILEWARP,
+							  FILEWARP, FILEWARP, FILEWARP, FILEWARP, ZIPWIRE_UP, ZIPWIRE_DOWN, ZIPWIRE_LEFT, ZIPWIRE_RIGHT, COIN};
+char *block_type_name[BLOCKS] = {"Non-Solid",
+								 "Solid",
+									"Barrier",
+								   "Warp",
+								   "Warp to Spawn",
+								   "Warp to Random Co-ords",
+								   "Filewarp",
+								   "Zipwire Up",
+								   "Zipwire Down",
+								   "Zipwire Left",
+								   "Zipwire Right",
+								   "Coin"};
 
 bool text = true;
 bool painting = false;
 bool solidity = true;
 bool warps = true;
 bool zipwires = true;
+bool coins = true;
 
 char *option_list[OPTIONS] = {"Back",
 							  "New Level",
-							  "Load Level from level.abl",
-							  "Load Level from level1.asciilvl",
-							  "Load Level from level2.asciilvl",
-							  "Load Level from level3.asciilvl",
-							  "Load Level from level4.asciilvl",
-							  "Save Level to level1.asciilvl",
-							  "Save Level to level2.asciilvl",
-							  "Save Level to level3.asciilvl",
-							  "Save Level to level4.asciilvl",
+							  "Load Level from LEVEL.ABL",
+							  "Load Level",
+							  "Save Level",
 							  "Teleport",
 							  "Teleport Relative",
 							  "Toggle Painting",
 							  "Toggle Solidity",
 							  "Toggle Warps",
 							  "Toggle Zipwires",
-							  "Toggle Solid Status of Held Block",
+							  "Change Type of Held Block",
 							  "Toggle Text",
+							  "Toggle Gamemode",
 							  "Replace All Instances of One Block with Held Block",
 							  "Fill Level with Held Block",
-							  "Change Username"};
+							  "Change Username",
+							  "Change Skin"};
 
 char *level_list[LEVELS] = {"level1.asciilvl",
 							"level2.asciilvl",
 							"level3.asciilvl",
-							"level4.asciilvl"};
+							"level4.asciilvl",
+							"level5.asciilvl",
+							"level6.asciilvl",
+							"level7.asciilvl",
+							"level8.asciilvl"};
 
-void toggle(bool *boolean);
+const char* is_enabled(bool condition);
 void init_colour();
 void draw_borders();
 void draw_map();
@@ -142,8 +187,6 @@ void load_level(int level);
 void save_level(int level);
 void load_abl();
 void tp(int tp_y, int tp_x, bool respect_solidity, bool respect_warps, bool respect_zipwires);
-void handle_warps();
-void handle_zipwires();
 void teleport(bool relative);
 void warp(uint8_t warp_id);
 void place_block(int relative_block_y, int relative_block_x, bool condition);
@@ -153,11 +196,12 @@ void fill_all();
 void change_username();
 void option(int i);
 void options_menu();
+void level_menu(bool save);
 int main(void);
 
-void toggle(bool *boolean)
+const char* is_enabled(bool condition)
 {
-	*boolean = !(*boolean);
+	return condition ? "Enabled" : "Disabled";
 }
 
 void init_colour()
@@ -194,10 +238,18 @@ void init_colour()
 	init_pair(27, COLOR_BLACK,   COLOR_YELLOW);
 	init_pair(28, COLOR_BLACK,   COLOR_YELLOW);
 	init_pair(29, COLOR_BLACK,   COLOR_YELLOW);
-	init_pair(30, COLOR_GREEN,   COLOR_BLACK);
-	init_pair(31, COLOR_GREEN,   COLOR_BLACK);
-	init_pair(32, COLOR_GREEN,   COLOR_BLACK);
-	init_pair(33, COLOR_GREEN,   COLOR_BLACK);
+	init_pair(30, COLOR_BLACK,   COLOR_YELLOW);
+	init_pair(31, COLOR_BLACK,   COLOR_YELLOW);
+	init_pair(32, COLOR_BLACK,   COLOR_YELLOW);
+	init_pair(33, COLOR_BLACK,   COLOR_YELLOW);
+	init_pair(34, COLOR_GREEN,   COLOR_BLACK);
+	init_pair(35, COLOR_GREEN,   COLOR_BLACK);
+	init_pair(36, COLOR_GREEN,   COLOR_BLACK);
+	init_pair(37, COLOR_GREEN,   COLOR_BLACK);
+	init_pair(38, COLOR_YELLOW,  COLOR_BLACK);
+
+	init_pair(128, COLOR_MAGENTA, COLOR_BLACK);
+	// colour of player character
 }
 
 void draw_borders()
@@ -221,15 +273,18 @@ void draw_borders()
 void draw_map()
 {
 	for (int i = 0; i < MAP_SIZE; i++) {
-		attron(COLOR_PAIR(map[i]));
-		mvaddch((i / width) + 1, (i % width) + 1, block[map[i]]);
-		attroff(COLOR_PAIR(map[i]));
+		if (!(block_type[map[i]] == BARRIER && challenge)) {
+			attron(COLOR_PAIR(map[i]));
+			mvaddch((i / width) + 1, (i % width) + 1, block[map[i]]);
+			attroff(COLOR_PAIR(map[i]));
+		}
 	}
 }
 
 void load_level(int level)
 {
 	if (level >= 0 && level < LEVELS) file = fopen(level_list[level], "rb");
+	else return;
 	if (!file) return;
 	
 	for (int i = 0; i < MAP_SIZE; i++) {
@@ -245,6 +300,7 @@ void load_level(int level)
 void save_level(int level)
 {
 	if (level >= 0 && level < LEVELS) file = fopen(level_list[level], "wb");
+	else return;
 
 	for (int i = 0; i < MAP_SIZE; i++) {
 		fputc(map[i], file);
@@ -255,7 +311,7 @@ void save_level(int level)
 
 void load_abl()
 {
-	file = fopen("level.abl", "rb");
+	file = fopen("LEVEL.ABL", "rb");
 	if (!file) return;
 
 	free(map);
@@ -315,57 +371,58 @@ void tp(int tp_y, int tp_x, bool respect_solidity, bool respect_warps, bool resp
 
 	if (tp_y < 0 || tp_y >= height) return;
 	if (tp_x < 0 || tp_x >= width) return;
-	if (block_solid_status[BLOCK_AT(tp_y, tp_x)] && respect_solidity) return;
+	if ((block_type[BLOCK(tp_y, tp_x)] == SOLID || block_type[BLOCK(tp_y, tp_x)] == BARRIER) && respect_solidity) return;
 
-	attron(COLOR_PAIR(BLOCK_AT(y, x)));
-	mvaddch(cursor_y, cursor_x - 1, block[BLOCK_AT(y, x)]);
-	attroff(COLOR_PAIR(BLOCK_AT(y, x)));
-	mvaddch(tp_y + 1, tp_x + 1, PLAYER);
+	attron(COLOR_PAIR(BLOCK(y, x)));
+	mvaddch(cursor_y, cursor_x - 1, block[BLOCK(y, x)]);
+	attroff(COLOR_PAIR(BLOCK(y, x)));
+	attron(COLOR_PAIR(128));
+	mvaddch(tp_y + 1, tp_x + 1, skin);
+	attroff(COLOR_PAIR(128));
 
 	y = tp_y;
 	x = tp_x;
 
-	if (respect_warps) handle_warps();
-	if (respect_zipwires) handle_zipwires();
-}
+	if (respect_warps) {
+		switch (block_type[BLOCK(y, x)]) {
+			case WARP:
+				warp(BLOCK(y, x));
+				break;
+			case SPAWN_WARP:
+				tp(spawn_y, spawn_x, false, warps, zipwires);
+				break;
+			case RANDOM_WARP:
+				tp(rand() % height, rand() % width, false, warps, zipwires);
+				break;
+		}
+	}
 
-void handle_warps()
-{
-	switch (BLOCK_AT(y, x)) {
-		case WARP_SPAWN:
-			tp(spawn_y, spawn_x, false, warps, zipwires);
-			break;
-		case WARP_RANDOM:
-			tp(rand() % height, rand() % width, false, warps, zipwires);
-			break;
-		case WARP_1:
-		case WARP_2:
-		case WARP_3:
-		case WARP_4:
-		case WARP_5:
-		case WARP_6:
-		case WARP_7:
-		case WARP_8:
-			warp(BLOCK_AT(y, x));
-			break;
-		case FILEWARP_1:
-			load_level(0);
-			break;
-		case FILEWARP_2:
-			load_level(1);
-			break;
-		case FILEWARP_3:
-			load_level(2);
-			break;
-		case FILEWARP_4:
-			load_level(3);
-			break;
+	if (respect_zipwires) {
+		switch (block_type[BLOCK(y, x)]) {
+			case ZIPWIRE_UP:
+				tp(y - 1, x, false, warps, zipwires);
+				break;
+			case ZIPWIRE_DOWN:
+				tp(y + 1, x, false, warps, zipwires);
+				break;
+			case ZIPWIRE_LEFT:
+				tp(y, x - 1, false, warps, zipwires);
+				break;
+			case ZIPWIRE_RIGHT:
+				tp(y, x + 1, false, warps, zipwires);
+				break;
+		}
+	}
+
+	if (coins && block_type[BLOCK(y, x)] == COIN) {
+		coin_count++;
+		BLOCK(y, x) = 0;
 	}
 }
 
 void handle_zipwires()
 {
-	switch (BLOCK_AT(y, x)) {
+	switch (BLOCK(y, x)) {
 		case ZIPWIRE_UP:
 			tp(y - 1, x, false, warps, zipwires);
 			break;
@@ -411,7 +468,7 @@ void warp(uint8_t warp_id)
 {
 	for (int i = 0; i < height; i++) {
 		for (int j = 0; j < width; j++) {
-			if (BLOCK_AT(i, j) == warp_id && (i != y || j != x)) {
+			if (BLOCK(i, j) == warp_id && (i != y || j != x)) {
 				tp(i, j, false, false, false);
 				return;
 			}
@@ -443,34 +500,18 @@ void draw_ui()
 	tp(y, x, false, false, false);
 }
 
-void place_block(int relative_block_y, int relative_block_x, bool condition)
+void set_block(int block_y, int block_x, bool remove_block_if_present)
 {
-	if (condition) {
-		if (painting) {
-			attron(COLOR_PAIR(held_block));
-			mvaddch(cursor_y + relative_block_y, cursor_x + relative_block_x - 1, block[held_block]);
-			attroff(COLOR_PAIR(held_block));
-		} else {
-			attron(COLOR_PAIR(RELATIVE_BLOCK(relative_block_y, relative_block_x) ? 0 : held_block));
-			mvaddch(cursor_y + relative_block_y, cursor_x + relative_block_x - 1, block[PLACE_RELATIVE_BLOCK(relative_block_y, relative_block_x)]);
-			attroff(COLOR_PAIR(RELATIVE_BLOCK(relative_block_y, relative_block_x) ? 0 : held_block));
-		}
-		
-		move(cursor_y, cursor_x);
+	if (block_y < 0 || block_y >= height) return;
+	if (block_x < 0 || block_x >= width) return;
 
-		if (painting) {
-			RELATIVE_BLOCK(relative_block_y, relative_block_x) = held_block;
-		} else {
-			RELATIVE_BLOCK(relative_block_y, relative_block_x) = PLACE_RELATIVE_BLOCK(relative_block_y, relative_block_x);
-		}
-	}
-}
-
-void set_block(int set_block_y, int set_block_x, bool remove_block_if_present)
-{
-	if (set_block_y < 0 || set_block_y >= height) return;
-	if (set_block_x < 0 || set_block_x >= width) return;
+	attron(COLOR_PAIR(remove_block_if_present ? PLACE_BLOCK(block_y, block_x) : block[held_block]));
+	mvaddch(block_y + 1, block_x + 1, remove_block_if_present ? block[PLACE_BLOCK(block_y, block_x)] : block[held_block]);
+	attroff(COLOR_PAIR(remove_block_if_present ? PLACE_BLOCK(block_y, block_x) : block[held_block]));
 	
+	move(cursor_y, cursor_x);
+	
+	BLOCK(block_y, block_x) = remove_block_if_present ? PLACE_BLOCK(block_y, block_x) : held_block;
 }
 
 void new_level()
@@ -484,11 +525,11 @@ void new_level()
 	printw("Leave the width or height blank to accept their default values.\n\n");
 
 	width = DEFAULT_WIDTH;
-	printw("width (default %d): ", DEFAULT_WIDTH);
+	printw("Width (%d): ", DEFAULT_WIDTH);
 	scanw(" %d", &width);
 
 	height = DEFAULT_HEIGHT;
-	printw("height (default %d): ", DEFAULT_HEIGHT);
+	printw("Height (%d): ", DEFAULT_HEIGHT);
 	scanw(" %d", &height);
 
 	curs_set(0);
@@ -508,7 +549,7 @@ void replace_all()
 	echo();
 
 	uint8_t id_to_replace = 0;
-	printw("block id to replace: ");
+	printw("Block ID to replace: ");
 	scanw(" %hhu", &id_to_replace);
 
 	for (int i = 0; i < MAP_SIZE; i++) {
@@ -545,6 +586,21 @@ void change_username()
 	draw_ui();
 }
 
+void change_skin()
+{
+	clear();
+	curs_set(1);
+	echo();
+	
+	printw("Skin: ");
+	scanw(" %c", &skin);
+	
+	curs_set(0);
+	noecho();
+	
+	draw_ui();
+}
+
 void option(int i)
 {
 	switch (i) {
@@ -555,49 +611,49 @@ void option(int i)
 			load_abl();
 			break;
 		case 3:
+			level_menu(false);
+			break;
 		case 4:
+			level_menu(true);
+			break;
 		case 5:
-		case 6:
-			load_level(i - 3);
-			break;
-		case 7:
-		case 8:
-		case 9:
-		case 10:
-			save_level(i - 7);
-			break;
-		case 11:
 			teleport(false);
 			break;
-		case 12:
+		case 6:
 			teleport(true);
 			break;
+		case 7:
+			painting ^= 1;
+			break;
+		case 8:
+			solidity ^= 1;
+			break;
+		case 9:
+			warps ^= 1;
+			break;
+		case 10:
+			zipwires ^= 1;
+			break;
+		case 11:
+			//block_solid_status[held_block] ^= 1;
+			break;
+		case 12:
+			text ^= 1;
+			break;
 		case 13:
-			toggle(&painting);
+			challenge ^= 1;
 			break;
 		case 14:
-			toggle(&solidity);
-			break;
-		case 15:
-			toggle(&warps);
-			break;
-		case 16:
-			toggle(&zipwires);
-			break;
-		case 17:
-			toggle(&block_solid_status[held_block]);
-			break;
-		case 18:
-			toggle(&text);
-			break;
-		case 19:
 			replace_all();
 			break;
-		case 20:
+		case 15:
 			fill_all();
 			break;
-		case 21:
+		case 16:
 			change_username();
+			break;
+		case 17:
+			change_skin();
 			break;
 	}
 	
@@ -610,7 +666,7 @@ void options_menu()
 	
 	clear();
 	
-	while (1) {
+	while (true) {
 		for (int i = 0; i < OPTIONS; i++) {
 			if (i == j) attron(A_REVERSE);
 			mvprintw(i, 0, "%s\n", option_list[i]);
@@ -637,6 +693,39 @@ void options_menu()
 	}
 }
 
+void level_menu(bool save)
+{
+	int j = 0;
+	
+	clear();
+	
+	while (true) {
+		for (int i = 0; i < LEVELS; i++) {
+			if (i == j) attron(A_REVERSE);
+			mvprintw(i, 0, "%s\n", level_list[i]);
+			if (i == j) attroff(A_REVERSE);
+		}
+		
+		switch (getch()) {
+			case 'w':
+			case KEY_UP:
+				j--;
+				if (j == -1) j = LEVELS - 1;
+				break;
+			case 's':
+			case KEY_DOWN:
+				j++;
+				if (j == LEVELS) j = 0;
+				break;
+			case '\n':
+				if (save) save_level(j);
+				else load_level(j);
+				return;
+		}
+	}
+}
+// TODO consolidate options_menu and level_menu into one function that can be reused for both those purposes
+
 int main(void)
 {
 	srand(time(NULL));
@@ -652,30 +741,32 @@ int main(void)
 
 	draw_ui();
 	
-	while (1) {
+	while (true) {
 		getyx(stdscr, cursor_y, cursor_x);
 
 		if (text) {
-			mvprintw(10, width + 4, "X: %i\n", x);
-			mvprintw(11, width + 4, "Y: %i\n", y);
+			mvprintw(10, width + 4, "X: %d\n", x);
+			mvprintw(11, width + 4, "Y: %d\n", y);
 		
-			mvprintw(13, width + 4, "Spawn X: %i\n", spawn_x);
-			mvprintw(14, width + 4, "Spawn Y: %i\n", spawn_y);
+			mvprintw(13, width + 4, "Spawn X: %d\n", spawn_x);
+			mvprintw(14, width + 4, "Spawn Y: %d\n", spawn_y);
 		
 			attron(COLOR_PAIR(held_block));
 			mvaddch(16, width + 19, block[held_block]);
 			attroff(COLOR_PAIR(held_block));
 
-			mvprintw(17, width + 4, "Block ID: %i\n", held_block);
+			mvprintw(17, width + 4, "Block ID: %d\n", held_block);
 			mvprintw(18, width + 4, "Block Name: %s\n", block_name[held_block]);
-			mvprintw(19, width + 4, "Block Solid Status: %s\n", block_solid_status[held_block] ? "Solid" : "Non-Solid");
+			mvprintw(19, width + 4, "Block Type: %s\n", block_type_name[block_type[held_block]]);
 
-			mvprintw(21, width + 4, "Painting: %s\n", painting ? "Enabled" : "Disabled");		
-			mvprintw(22, width + 4, "Solidity: %s\n", solidity ? "Enabled" : "Disabled");
-			mvprintw(23, width + 4, "Warps: %s\n", warps ? "Enabled" : "Disabled");
-			mvprintw(24, width + 4, "Zipwires: %s\n", zipwires ? "Enabled" : "Disabled");
+			mvprintw(21, width + 4, "Painting: %s\n", is_enabled(painting));		
+			mvprintw(22, width + 4, "Solidity: %s\n", is_enabled(solidity));
+			mvprintw(23, width + 4, "Warps: %s\n", is_enabled(warps));
+			mvprintw(24, width + 4, "Zipwires: %s\n", is_enabled(zipwires));
 
 			mvprintw(26, width + 4, "Username: %s\n", username);
+			mvprintw(27, width + 4, "Game Mode: %s\n", challenge ? "Challenge" : "Build");
+			mvprintw(28, width + 4, "Coins: %u\n", coin_count);
 
 			move(cursor_y, cursor_x);
 		}
@@ -698,29 +789,31 @@ int main(void)
 				tp(y, x + 1, solidity, warps, zipwires);
 				break;
 			case 'i':
-				place_block(-1, 0, y > 0);
+				if (!challenge) set_block(y - 1, x, !painting);
 				break;
 			case 'k':
-				place_block(1, 0, y < height - 1);
+				if (!challenge) set_block(y + 1, x, !painting);
 				break;
 			case 'j':
-				place_block(0, -1, x > 0);
+				if (!challenge) set_block(y, x - 1, !painting);
 				break;
 			case 'l':
-				place_block(0, 1, x < width - 1);
+				if (!challenge) set_block(y, x + 1, !painting);
 				break;
 			case '\n':
-				spawn_y = y;
-				spawn_x = x;
+				if (!challenge) {
+					spawn_y = y;
+					spawn_x = x;
+				}
 				break;
 			case 'r':
-				tp(spawn_y, spawn_x, false, warps, zipwires);
+				if (!challenge) tp(spawn_y, spawn_x, false, warps, zipwires);
 				break;
 			case 'f':
-				held_block = (held_block - 1 + BLOCKS) % BLOCKS;
+				if (!challenge) held_block = (held_block - 1 + BLOCKS) % BLOCKS;
 				break;
 			case 'h':
-				held_block = (held_block + 1) % BLOCKS;
+				if (!challenge) held_block = (held_block + 1) % BLOCKS;
 				break;
 			case 'm':
 				options_menu();
