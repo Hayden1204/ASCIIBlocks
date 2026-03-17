@@ -299,7 +299,7 @@ void draw_player()
 
 void load_level(int level)
 {
-	if (level >= 0 && level < LEVELS) file = fopen(level_list[level], "rb");
+	if (level >= 0 && level < LEVEL_COUNT) file = fopen(level_list[level], "rb");
 	else return;
 	if (!file) return;
 	
@@ -315,7 +315,7 @@ void load_level(int level)
 
 void save_level(int level)
 {
-	if (level >= 0 && level < LEVELS) file = fopen(level_list[level], "wb");
+	if (level >= 0 && level < LEVEL_COUNT) file = fopen(level_list[level], "wb");
 	else return;
 
 	for (int i = 0; i < MAP_SIZE; i++) {
@@ -410,7 +410,7 @@ void tp(int tp_y, int tp_x, bool respect_solidity, bool respect_warps, bool resp
 				tp(rand() % height, rand() % width, false, warps, zipwires);
 				break;
 			case TYPE_FILEWARP:
-				load_level((BLOCK(y, x) + 6) % LEVELS);
+				load_level((BLOCK(y, x) + 6) % LEVEL_COUNT);
 				break;
 		}
 	}
@@ -497,7 +497,7 @@ void draw_ui()
 	tp(y, x, false, false, false);
 }
 
-unsigned int count_block_count(uint8_t block)
+unsigned int count_block(uint8_t block)
 {
 	unsigned int count = 0;
 
@@ -724,7 +724,7 @@ void options_menu()
 	clear();
 	
 	while (true) {
-		for (int i = 0; i < OPTIONS; i++) {
+		for (int i = 0; i < OPTION_COUNT; i++) {
 			if (i == j) attron(A_REVERSE);
 			mvprintw(i, 0, "%s\n", option_list[i]);
 			if (i == j) attroff(A_REVERSE);
@@ -735,12 +735,12 @@ void options_menu()
 			case KEY_UP:
 				j--;
 				if (j == -1)
-					j = OPTIONS - 1;
+					j = OPTION_COUNT - 1;
 				break;
 			case 's':
 			case KEY_DOWN:
 				j++;
-				if (j == OPTIONS)
+				if (j == OPTION_COUNT)
 					j = 0;
 				break;
 			case '\n':
@@ -757,7 +757,7 @@ void level_menu(bool save)
 	clear();
 	
 	while (true) {
-		for (int i = 0; i < LEVELS; i++) {
+		for (int i = 0; i < LEVEL_COUNT; i++) {
 			if (i == j) attron(A_REVERSE);
 			mvprintw(i, 0, "%s\n", level_list[i]);
 			if (i == j) attroff(A_REVERSE);
@@ -767,12 +767,12 @@ void level_menu(bool save)
 			case 'w':
 			case KEY_UP:
 				j--;
-				if (j == -1) j = LEVELS - 1;
+				if (j == -1) j = LEVEL_COUNT - 1;
 				break;
 			case 's':
 			case KEY_DOWN:
 				j++;
-				if (j == LEVELS) j = 0;
+				if (j == LEVEL_COUNT) j = 0;
 				break;
 			case '\n':
 				if (save) save_level(j);
