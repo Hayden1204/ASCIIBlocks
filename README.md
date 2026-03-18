@@ -10,6 +10,19 @@ Use the WASD keys to move, and use IJKL to place blocks. To change your held blo
 
 ## Compiling (Linux, *BSD, MacOS)
 
+### The modern way:
+```sh
+meson setup build .
+meson compile -C build
+```
+
+### The old way:
 To compile an executable named `asciiblocks` using `gcc`, optimised for your hardware:
 
 `gcc asciiblocks.c -O2 -flto -s -march=native -o asciiblocks -lncurses`
+
+## Cross-compiling to windows (from Linux, *BSD, MacOS):
+```sh
+meson setup --cross-file windows-crosscompilation.txt build-mingw
+meson compile -C build-mingw
+```
