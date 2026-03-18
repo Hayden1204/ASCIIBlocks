@@ -8,6 +8,10 @@ A GUI client is planned, codenamed _Acaciablocks_.
 
 Use the WASD keys to move, and use IJKL to place blocks. To change your held block, use the keys F and H. To open the menu, use the M key.
 
+## Compiling (Windows)
+
+_TODO_
+
 ## Compiling (Linux, *BSD, MacOS)
 
 ### The modern way:
