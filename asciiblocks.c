@@ -26,7 +26,7 @@
 	#define NAME "ASCIIBlocks"
 #endif
 
-#define VERSION "1.6.0-alpha.2"
+#define VERSION "1.6.0-alpha.3"
 
 #define C_BORDER '+'
 #define H_BORDER '-'
@@ -38,34 +38,46 @@
 
 #define LEVEL_SIGNATURE "ASCIIBLOCKS"
 
-#define TYPE_NONSOLID 0
-#define TYPE_SOLID 1
-#define TYPE_BARRIER 2
-#define TYPE_WARP 3
-#define TYPE_WARP_SPAWN 4
-#define TYPE_WARP_RANDOM 5
-#define TYPE_FILEWARP 6
-#define TYPE_ZIPWIRE_UP 7
-#define TYPE_ZIPWIRE_DOWN 8
-#define TYPE_ZIPWIRE_LEFT 9
-#define TYPE_ZIPWIRE_RIGHT 10
-#define TYPE_COIN 11
-#define TYPE_MOVABLE 12
+enum BlockTypes {
+	TYPE_NONSOLID,
+	TYPE_SOLID,
+	TYPE_BARRIER,
+	TYPE_WARP,
+	TYPE_WARP_SPAWN,
+	TYPE_WARP_RANDOM,
+	TYPE_FILEWARP,
+	TYPE_ZIPWIRE_UP,
+	TYPE_ZIPWIRE_DOWN,
+	TYPE_ZIPWIRE_LEFT,
+	TYPE_ZIPWIRE_RIGHT,
+	TYPE_COIN,
+	TYPE_GATE_1,
+	TYPE_GATE_2,
+	TYPE_GATE_5,
+	TYPE_GATE_10,
+	TYPE_GATE_20,
+	TYPE_GATE_50,
+	TYPE_KEY_RED,
+	TYPE_KEY_BLUE,
+	TYPE_KEY_GREEN,
+	TYPE_GATE_RED,
+	TYPE_GATE_BLUE,
+	TYPE_GATE_GREEN
+};
 
-#define BLOCK_COUNT 39 // number of unique blocks
-#define TYPE_COUNT 12 // number of unique block types
+#define TYPE_COUNT 21 // number of unique block types
 #define OPTION_COUNT 19 // number of options in option menu
 #define LEVEL_COUNT 8 // number of levels available to load/save to/from
 
 #define TICK 50 // how often to tick in ms
-
-#define IS_ENABLED(CONDITION) CONDITION ? "Enabled" : "Disabled"
 
 #define DEFAULT_HEIGHT 28
 #define DEFAULT_WIDTH 96
 
 int height = DEFAULT_HEIGHT;
 int width = DEFAULT_WIDTH;
+
+int block_count = 48;
 
 int cursor_y = 1;
 int cursor_x = 2;
@@ -86,105 +98,138 @@ char level_name[33] = "Level";
 
 unsigned int coin_count = 0;
 unsigned int ticks = 0;
-bool gamemode = 0;
 
-char block[BLOCK_COUNT] = {' ', '#', '%', '&', '$', '*', '.', '@', '+',
-						   '[', ']', '~', '-', '=', '_', '!', '1', '2',
-						   '3', '4', '5', '6', '7', '8', '0', '?', '1',
-						   '2', '3', '4', '5', '6', '7', '8', '^', 'v',
-						   '<', '>', 'o'};
+char block[256] = {' ', '#', '%', '&', '$', '*', '.', '@', '+',
+				   '[', ']', '~', '-', '=', '_', '!', '1', '2',
+				   '3', '4', '5', '6', '7', '8', '0', '?', '1',
+				   '2', '3', '4', '5', '6', '7', '8', '^', 'v',
+				   '<', '>', 'o', '=', '=', '=', '=', '=', '=',
+				   '%', '%', '%'};
 
-char* block_name[BLOCK_COUNT] = {"Air",
-							"Wood",
-							"Leaves",
-							"Grass",
-							"Stone",
-							"Bedrock",
-							"Pebble",
-							"Wool",
-							"Fence",
-							"Left-Facing Door",
-							"Right-Facing Door",
-							"Vines",
-							"Path",
-							"Gate",
-							"Carpet",
-							"Barrier",
-							"Warp 1",
-							"Warp 2",
-							"Warp 3",
-							"Warp 4",
-							"Warp 5",
-							"Warp 6",
-							"Warp 7",
-							"Warp 8",
-							"Warp to Spawn",
-							"Warp to Random Co-ords",
-							"Filewarp 1",
-							"Filewarp 2",
-							"Filewarp 3",
-							"Filewarp 4",
-							"Filewarp 5",
-							"Filewarp 6",
-							"Filewarp 7",
-							"Filewarp 8",
-							"Zipwire Up",
-							"Zipwire Down",
-							"Zipwire Left",
-							"Zipwire Right",
-							"Coin"};
-uint8_t block_type[BLOCK_COUNT] = {TYPE_NONSOLID, TYPE_SOLID, TYPE_NONSOLID, TYPE_NONSOLID, TYPE_SOLID, TYPE_SOLID, TYPE_NONSOLID, TYPE_SOLID, TYPE_SOLID, TYPE_NONSOLID,
-							  TYPE_NONSOLID, TYPE_NONSOLID, TYPE_NONSOLID, TYPE_NONSOLID, TYPE_NONSOLID, TYPE_BARRIER, TYPE_WARP, TYPE_WARP, TYPE_WARP, TYPE_WARP,
-							  TYPE_WARP, TYPE_WARP, TYPE_WARP, TYPE_WARP, TYPE_WARP_SPAWN, TYPE_WARP_RANDOM, TYPE_FILEWARP, TYPE_FILEWARP, TYPE_FILEWARP, TYPE_FILEWARP,
-							  TYPE_FILEWARP, TYPE_FILEWARP, TYPE_FILEWARP, TYPE_FILEWARP, TYPE_ZIPWIRE_UP, TYPE_ZIPWIRE_DOWN, TYPE_ZIPWIRE_LEFT, TYPE_ZIPWIRE_RIGHT, TYPE_COIN};
+char* block_name[256] = {"Air",
+						 "Wood",
+						 "Leaves",
+						 "Grass",
+						 "Stone",
+						 "Bedrock",
+						 "Pebble",
+						 "Wool",
+						 "Fence",
+						 "Left-Facing Door",
+						 "Right-Facing Door",
+						 "Vines",
+						 "Path",
+						 "Gate",
+						 "Carpet",
+						 "Barrier",
+						 "Warp 1",
+						 "Warp 2",
+						 "Warp 3",
+						 "Warp 4",
+						 "Warp 5",
+						 "Warp 6",
+						 "Warp 7",
+						 "Warp 8",
+						 "Warp to Spawn",
+						 "Warp to Random Co-ords",
+						 "Filewarp 1",
+						 "Filewarp 2",
+						 "Filewarp 3",
+						 "Filewarp 4",
+						 "Filewarp 5",
+						 "Filewarp 6",
+						 "Filewarp 7",
+						 "Filewarp 8",
+						 "Zipwire Up",
+						 "Zipwire Down",
+						 "Zipwire Left",
+						 "Zipwire Right",
+						 "Coin",
+						 "1-Coin Gate",
+						 "2-Coin Gate",
+						 "5-Coin Gate",
+						 "10-Coin Gate",
+						 "20-Coin Gate",
+						 "50-Coin Gate",
+						 "Red Key",
+						 "Blue Key",
+						 "Green Key"};
+
+uint8_t block_type[256] = {TYPE_NONSOLID, TYPE_SOLID, TYPE_NONSOLID, TYPE_NONSOLID, TYPE_SOLID,
+						   TYPE_SOLID, TYPE_NONSOLID, TYPE_SOLID, TYPE_SOLID, TYPE_NONSOLID,
+						   TYPE_NONSOLID, TYPE_NONSOLID, TYPE_NONSOLID, TYPE_NONSOLID, TYPE_NONSOLID,
+						   TYPE_BARRIER, TYPE_WARP, TYPE_WARP, TYPE_WARP, TYPE_WARP,
+						   TYPE_WARP, TYPE_WARP, TYPE_WARP, TYPE_WARP, TYPE_WARP_SPAWN,
+						   TYPE_WARP_RANDOM, TYPE_FILEWARP, TYPE_FILEWARP, TYPE_FILEWARP, TYPE_FILEWARP,
+						   TYPE_FILEWARP, TYPE_FILEWARP, TYPE_FILEWARP, TYPE_FILEWARP, TYPE_ZIPWIRE_UP,
+						   TYPE_ZIPWIRE_DOWN, TYPE_ZIPWIRE_LEFT, TYPE_ZIPWIRE_RIGHT, TYPE_COIN, TYPE_GATE_1,
+						   TYPE_GATE_2, TYPE_GATE_5, TYPE_GATE_10, TYPE_GATE_20, TYPE_GATE_50,
+						   TYPE_KEY_RED, TYPE_KEY_BLUE, TYPE_KEY_GREEN};
+
 char *block_type_name[TYPE_COUNT] = {"Non-Solid",
-								 "Solid",
-									"Barrier",
-								   "Warp",
-								   "Warp to Spawn",
-								   "Warp to Random Co-ords",
-								   "Filewarp",
-								   "Zipwire Up",
-								   "Zipwire Down",
-								   "Zipwire Left",
-								   "Zipwire Right",
-								   "Coin"};
+									 "Solid",
+									 "Barrier",
+									 "Warp",
+									 "Warp to Spawn",
+									 "Warp to Random Co-ords",
+									 "Filewarp",
+									 "Zipwire Up",
+									 "Zipwire Down",
+									 "Zipwire Left",
+									 "Zipwire Right",
+									 "Coin",
+									 "1-Coin Gate",
+									 "2-Coin Gate",
+									 "5-Coin Gate",
+									 "10-Coin Gate",
+									 "20-Coin Gate",
+									 "50-Coin Gate",
+									 "Red Key",
+									 "Blue Key",
+									 "Green Key"};
 
 bool text = true;
+bool building = true;
 bool painting = false;
 bool solidity = true;
 bool warps = true;
 bool zipwires = true;
 bool coins = true;
 
+bool key_red = false;
+bool key_green = false;
+bool key_blue = false;
+
+int blue_uses = 0;
+
 char *option_list[OPTION_COUNT] = {"Back",
-							  "New Level",
-							  "Load Level from LEVEL.ABL",
-							  "Load Level",
-							  "Save Level",
-							  "Teleport",
-							  "Teleport Relative",
-							  "Toggle Painting",
-							  "Toggle Solidity",
-							  "Toggle Warps",
-							  "Toggle Zipwires",
-							  "Change Held Block Type",
-							  "Toggle Text",
-							  "Toggle Gamemode",
-							  "Replace All Instances of One Block with Held Block",
-							  "Fill Level with Held Block",
-							  "Change Username",
-							  "Change Skin",
-							  "Change Level Name"};
+								   "New Level",
+								   "Load Level from LEVEL.ABL",
+								   "Load Level",
+								   "Save Level",
+								   "Teleport",
+								   "Teleport Relative",
+								   "Toggle Painting",
+								   "Toggle Solidity",
+								   "Toggle Warps",
+								   "Toggle Zipwires",
+								   "Change Held Block Type",
+								   "Toggle Text",
+								   "Toggle Building",
+								   "Replace All Instances of One Block with Held Block",
+								   "Fill Level with Held Block",
+								   "Change Username",
+								   "Change Skin",
+								   "Change Level Name"};
 
 char *level_list[LEVEL_COUNT] = {"level1.asciilvl",
-							"level2.asciilvl",
-							"level3.asciilvl",
-							"level4.asciilvl",
-							"level5.asciilvl",
-							"level6.asciilvl",
-							"level7.asciilvl",
-							"level8.asciilvl"};
+								 "level2.asciilvl",
+								 "level3.asciilvl",
+								 "level4.asciilvl",
+								 "level5.asciilvl",
+								 "level6.asciilvl",
+								 "level7.asciilvl",
+								 "level8.asciilvl"};
 
 const char* is_enabled(bool condition);
 void init_colour();
@@ -256,6 +301,15 @@ void init_colour()
 	init_pair(36, COLOR_GREEN,   COLOR_BLACK);
 	init_pair(37, COLOR_GREEN,   COLOR_BLACK);
 	init_pair(38, COLOR_YELLOW,  COLOR_BLACK);
+	init_pair(39, COLOR_MAGENTA, COLOR_BLACK);
+	init_pair(40, COLOR_MAGENTA, COLOR_BLACK);
+	init_pair(41, COLOR_MAGENTA, COLOR_BLACK);
+	init_pair(42, COLOR_MAGENTA, COLOR_BLACK);
+	init_pair(43, COLOR_MAGENTA, COLOR_BLACK);
+	init_pair(44, COLOR_MAGENTA, COLOR_BLACK);
+	init_pair(45, COLOR_RED,     COLOR_BLACK);
+	init_pair(46, COLOR_BLUE,    COLOR_BLACK);
+	init_pair(47, COLOR_GREEN,   COLOR_BLACK);
 
 	init_pair(128, COLOR_MAGENTA, COLOR_BLACK);
 	// colour of player character
@@ -282,7 +336,7 @@ void draw_borders()
 void draw_map()
 {
 	for (int i = 0; i < MAP_SIZE; i++) {
-		if (!(block_type[map[i]] == TYPE_BARRIER && gamemode)) {
+		if (!(block_type[map[i]] == TYPE_BARRIER && building)) {
 			attron(COLOR_PAIR(map[i]));
 			mvaddch((i / width) + 1, (i % width) + 1, block[map[i]]);
 			attroff(COLOR_PAIR(map[i]));
@@ -387,6 +441,34 @@ void tp(int tp_y, int tp_x, bool respect_solidity, bool respect_warps, bool resp
 
 	if (tp_y < 0 || tp_y >= height) return;
 	if (tp_x < 0 || tp_x >= width) return;
+
+	switch (block_type[BLOCK(tp_y, tp_x)]) {
+		case TYPE_GATE_1:
+			if (coin_count < 1) return;
+			else coin_count -= 1;
+			break;
+		case TYPE_GATE_2:
+			if (coin_count < 2) return;
+			else coin_count -= 2;
+			break;
+		case TYPE_GATE_5:
+			if (coin_count < 5) return;
+			else coin_count -= 5;
+			break;
+		case TYPE_GATE_10:
+			if (coin_count < 10) return;
+			else coin_count -= 10;
+			break;
+		case TYPE_GATE_20:
+			if (coin_count < 20) return;
+			else coin_count -= 20;
+			break;
+		case TYPE_GATE_50:
+			if (coin_count < 50) return;
+			else coin_count -= 50;
+			break;
+	} // TODO fix horrible code
+
 	if ((block_type[BLOCK(tp_y, tp_x)] == TYPE_SOLID || block_type[BLOCK(tp_y, tp_x)] == TYPE_BARRIER) && respect_solidity) return;
 
 	attron(COLOR_PAIR(BLOCK(y, x)));
@@ -440,6 +522,21 @@ void tp(int tp_y, int tp_x, bool respect_solidity, bool respect_warps, bool resp
 		coin_count++;
 		BLOCK(y, x) = 0;
 	}
+
+	if (coins && block_type[BLOCK(y, x)] == TYPE_KEY_RED) {
+		key_red = true;
+		BLOCK(y, x) = 0;
+	}
+
+	if (coins && block_type[BLOCK(y, x)] == TYPE_KEY_BLUE) {
+		key_blue = true;
+		BLOCK(y, x) = 0;
+	}
+
+	if (coins && block_type[BLOCK(y, x)] == TYPE_KEY_GREEN) {
+		key_green = true;
+		BLOCK(y, x) = 0;
+	}
 }
 
 void teleport(bool relative)
@@ -448,6 +545,8 @@ void teleport(bool relative)
 	curs_set(1);
 	echo();
 
+	timeout(-1); // disable ticking for input
+
 	int new_x = x;
 	printw("X: %s", relative ? "~" : "");
 	scanw(" %d", &new_x);
@@ -455,6 +554,8 @@ void teleport(bool relative)
 	int new_y = y;
 	printw("Y: %s", relative ? "~" : "");
 	scanw(" %d", &new_y);
+
+	timeout(TICK); // reenable ticking
 
 	curs_set(0);
 	noecho();
@@ -488,7 +589,7 @@ void draw_ui()
 		mvprintw(0, width + 4, "%s %s\n", NAME, VERSION);
 		mvprintw(1, width + 4, "by Hayden\n");
 	
-		mvprintw(6, width + 4, "Block Texture:\n");
+		mvprintw(7, width + 4, "Block Texture:\n");
 	}
 
 	draw_borders();
@@ -536,6 +637,8 @@ void new_level()
 
 	printw("Leave the width or height blank to accept their default values.\n\n");
 
+	timeout(-1); // disable ticking for input
+
 	height = DEFAULT_HEIGHT;
 	printw("Height (%d): ", DEFAULT_HEIGHT);
 	scanw(" %d", &height);
@@ -547,8 +650,9 @@ void new_level()
 	curs_set(0);
 	noecho();
 
+	timeout(TICK); // reenable ticking
+
 	map = calloc(MAP_SIZE, sizeof (uint8_t));
-	
 	draw_ui();
 
 	tp(0, 0, false, false, false);
@@ -561,8 +665,11 @@ void replace_all()
 	echo();
 
 	uint8_t id_to_replace = 0;
+
 	printw("Block ID to replace: ");
+	timeout(-1); // disable ticking for input
 	scanw(" %hhu", &id_to_replace);
+	timeout(TICK); // reenable ticking
 
 	for (int i = 0; i < MAP_SIZE; i++) {
 		if (map[i] == id_to_replace) map[i] = held_block;
@@ -588,12 +695,12 @@ void change_username()
 	clear();
 	curs_set(1);
 	echo();
-
-	timeout(-1); // disable ticking for input
-	printw("Username: ");
-	timeout(TICK); // reenable ticking
-	scanw(" %32s", &username);
 	
+	printw("Username: ");
+	timeout(-1); // disable ticking for input
+	scanw(" %32s", &username);
+	timeout(TICK); // reenable ticking
+		
 	curs_set(0);
 	noecho();
 	
@@ -606,10 +713,10 @@ void change_skin()
 	curs_set(1);
 	echo();
 	
-	timeout(-1); // disable ticking for input
 	printw("Skin: ");
-	timeout(TICK); // reenable ticking
+	timeout(-1); // disable ticking for input
 	scanw(" %c", &skin);
+	timeout(TICK); // reenable ticking	
 	
 	curs_set(0);
 	noecho();
@@ -695,7 +802,7 @@ void option(int i)
 			text ^= 1;
 			break;
 		case 13:
-			gamemode ^= 1;
+			building ^= 1;
 			break;
 		case 14:
 			replace_all();
@@ -803,28 +910,31 @@ int main(void)
 		getyx(stdscr, cursor_y, cursor_x);
 
 		if (text) {
-			mvprintw(3, width + 4, "YX: (%d, %d)\n", y, x);
-			mvprintw(4, width + 4, "Spawn YX: (%d, %d)\n", spawn_y, spawn_x);
+			mvprintw(3, width + 4, "XY: (%d, %d)\n", x, y);
+			mvprintw(4, width + 4, "Spawn XY: (%d, %d)\n", spawn_x, spawn_y);
+			mvprintw(5, width + 4, "Ticks: %u\n", ticks);
 		
 			attron(COLOR_PAIR(held_block));
-			mvaddch(6, width + 19, block[held_block]);
+			mvaddch(7, width + 19, block[held_block]);
 			attroff(COLOR_PAIR(held_block));
 
-			mvprintw(7, width + 4, "Block ID: %d\n", held_block);
-			mvprintw(8, width + 4, "Block Name: %s\n", block_name[held_block]);
-			mvprintw(9, width + 4, "Block Type: %s\n", block_type_name[block_type[held_block]]);
+			mvprintw(8, width + 4, "Block ID: %d\n", held_block);
+			mvprintw(9, width + 4, "Block Name: %s\n", block_name[held_block]);
+			mvprintw(10, width + 4, "Block Type: %s\n", block_type_name[block_type[held_block]]);
 
-			mvprintw(11, width + 4, "Painting: %s\n", is_enabled(painting));		
-			mvprintw(12, width + 4, "Solidity: %s\n", is_enabled(solidity));
-			mvprintw(13, width + 4, "Warps: %s\n", is_enabled(warps));
-			mvprintw(14, width + 4, "Zipwires: %s\n", is_enabled(zipwires));
+			mvprintw(12, width + 4, "Building: %s\n", is_enabled(building));
+			mvprintw(13, width + 4, "Painting: %s\n", is_enabled(painting));		
+			mvprintw(14, width + 4, "Solidity: %s\n", is_enabled(solidity));
+			mvprintw(15, width + 4, "Warps: %s\n", is_enabled(warps));
+			mvprintw(16, width + 4, "Zipwires: %s\n", is_enabled(zipwires));
 
-			mvprintw(16, width + 4, "Username: %s\n", username);
-			mvprintw(17, width + 4, "Level Name: %s\n", level_name);
+			mvprintw(18, width + 4, "Coins: %u\n", coin_count);
+			mvprintw(19, width + 4, "Red Key: %s\n", key_red ? "You Have This!" : "You Don't Have This");
+			mvprintw(20, width + 4, "Blue Key: %s\n", key_blue ? "You Have This!" : "You Don't Have This");
+			mvprintw(21, width + 4, "Green Key: %s\n", key_green ? "You Have This!" : "You Don't Have This");
 
-			mvprintw(19, width + 4, "Game Mode: %s\n", gamemode ? "gamemode" : "Build");
-			mvprintw(20, width + 4, "Coins: %u\n", coin_count);
-			mvprintw(21, width + 4, "Ticks: %u\n", ticks);
+			mvprintw(23, width + 4, "Username: %s\n", username);
+			mvprintw(24, width + 4, "Level Name: %s\n", level_name);
 
 			// TODO redrawing this text every tick is inefficient so don't do it
 
@@ -849,31 +959,31 @@ int main(void)
 				tp(y, x + 1, solidity, warps, zipwires);
 				break;
 			case 'i':
-				if (!gamemode) set_block(y - 1, x, !painting);
+				if (building) set_block(y - 1, x, !painting);
 				break;
 			case 'k':
-				if (!gamemode) set_block(y + 1, x, !painting);
+				if (building) set_block(y + 1, x, !painting);
 				break;
 			case 'j':
-				if (!gamemode) set_block(y, x - 1, !painting);
+				if (building) set_block(y, x - 1, !painting);
 				break;
 			case 'l':
-				if (!gamemode) set_block(y, x + 1, !painting);
+				if (building) set_block(y, x + 1, !painting);
 				break;
 			case '\n':
-				if (!gamemode) {
+				if (building) {
 					spawn_y = y;
 					spawn_x = x;
 				}
 				break;
 			case 'r':
-				if (!gamemode) tp(spawn_y, spawn_x, false, warps, zipwires);
+				if (building) tp(spawn_y, spawn_x, false, warps, zipwires);
 				break;
 			case 'f':
-				if (!gamemode) held_block = (held_block - 1 + BLOCK_COUNT) % BLOCK_COUNT;
+				if (building) held_block = (held_block - 1 + block_count) % block_count;
 				break;
 			case 'h':
-				if (!gamemode) held_block = (held_block + 1) % BLOCK_COUNT;
+				if (building) held_block = (held_block + 1) % block_count;
 				break;
 			case 'm':
 				options_menu();
