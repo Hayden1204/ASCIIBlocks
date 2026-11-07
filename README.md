@@ -4,6 +4,21 @@
 
 A GUI client is planned, codenamed _Acaciablocks_.
 
+## Features
+
+- Loading and saving levels
+- Command menu
+- Feature toggles
+- Rudimentary building menu commands
+- Blocks
+- Block types
+- Warps
+- Filewarps
+- Zipwires
+- Coins
+- Coin Gates
+- Keys
+
 ## How to play
 
 Use the WASD keys to move, and use IJKL to place blocks. To change your held block, use the keys F and H. To open the menu, use the M key.
