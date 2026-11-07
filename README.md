@@ -31,4 +31,4 @@ _TODO_
 
 To compile an executable named `asciiblocks` using `gcc`, optimised for your hardware:
 
-`gcc asciiblocks.c -O2 -flto -s -march=native -o asciiblocks -lncurses`
+`gcc asciiblocks.c -O2 -flto -s -march=native -o asciiblocks -lncurses -lSDL3 -lSDL3_net`
