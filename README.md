@@ -4,6 +4,10 @@
 
 A GUI client is planned, codenamed _Acaciablocks_.
 
+## How to play
+
+Use the WASD keys to move, and use IJKL to place blocks. To change your held block, use the keys F and H. To open the menu, use the M key.
+
 ## Features
 
 - Loading and saving levels
@@ -18,10 +22,6 @@ A GUI client is planned, codenamed _Acaciablocks_.
 - Coins
 - Coin Gates
 - Keys
-
-## How to play
-
-Use the WASD keys to move, and use IJKL to place blocks. To change your held block, use the keys F and H. To open the menu, use the M key.
 
 ## Compiling (Windows)
 
