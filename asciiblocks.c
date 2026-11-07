@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <time.h>
+#include <SDL3_net/SDL_net.h>
 
 #if defined(_WIN32) || defined(_WIN64)
   #include <curses.h>
@@ -12,7 +13,7 @@
   #define NAME "ASCIIBlocks"
 #endif
 
-#define VERSION "1.6.0-alpha.4"
+#define VERSION "1.6.0-alpha.5"
 
 #define C_BORDER '+'
 #define H_BORDER '-'
@@ -24,8 +25,7 @@
 
 #define LEVEL_SIGNATURE "ASCIIBLOCKS"
 
-#define TYPE_COUNT 21 // number of unique block types
-#define OPTION_COUNT 19 // number of options in option menu
+#define OPTION_COUNT 20 // number of options in option menu
 #define LEVEL_COUNT 8 // number of levels available to load/save to/from
 
 #define TICK 50 // how often to tick in ms
@@ -55,9 +55,7 @@ enum BlockTypes {
   TYPE_KEY_RED,
   TYPE_KEY_BLUE,
   TYPE_KEY_GREEN,
-  TYPE_GATE_RED,
-  TYPE_GATE_BLUE,
-  TYPE_GATE_GREEN
+  TYPE_COUNT
 };
 
 int height = DEFAULT_HEIGHT;
@@ -190,6 +188,7 @@ bool solidity = true;
 bool warps = true;
 bool zipwires = true;
 bool coins = true;
+bool is_multiplayer = false;
 
 bool key_red = false;
 bool key_green = false;
@@ -213,7 +212,8 @@ char *option_list[OPTION_COUNT] = {"Back",
                                    "Change Username",
                                    "Change Skin",
                                    "Change Level Name",
-                                   "Change Held Block Type"};
+                                   "Change Held Block Type",
+                                   "Connect to Server"};
 
 char *level_list[LEVEL_COUNT] = {"level1.asciilvl",
                                  "level2.asciilvl",
@@ -235,6 +235,7 @@ void save_level(int level);
 void load_abl(void);
 void tp(int tp_y, int tp_x, bool respect_solidity, bool respect_warps, bool respect_zipwires);
 void teleport(bool relative);
+
 void warp(uint8_t warp_id);
 void draw_ui(void);
 unsigned int count_blocks(uint8_t block);
@@ -608,9 +609,27 @@ void teleport(bool relative) {
   }
 }
 
+void connect_to_server(void) {
+  clear();
+  curs_set(1);
+  echo();
+
+  timeout(-1); // disable ticking for input
+
+  printw("Server IP: ");
+  getch();
+
+  timeout(TICK); // reenable ticking
+
+  curs_set(0);
+  noecho();
+
+  draw_ui();
+}
+
 void warp(uint8_t warp_id) {
-  for (int i = 0; i < height; i++) {
-    for (int j = 0; j < width; j++) {
+  for (unsigned int i = 0; i < height; i++) {
+    for (unsigned int j = 0; j < width; j++) {
       if (BLOCK(i, j) == warp_id && (i != y || j != x)) {
         tp(i, j, false, false, false);
         return;
@@ -626,7 +645,7 @@ void draw_ui(void) {
     mvprintw(0, width + 4, "%s %s\n", NAME, VERSION);
     mvprintw(1, width + 4, "by Hayden\n");
   
-    mvprintw(7, width + 4, "Block Texture:\n");
+    mvprintw(8, width + 4, "Block Texture:\n");
   }
 
   draw_borders();
@@ -800,6 +819,9 @@ void option(int i) {
     case 18:
       change_held_block_type();
       break;
+    case 19:
+      connect_to_server();
+      break;
   }
   
   draw_ui();
@@ -812,23 +834,29 @@ void options_menu(void) {
   
   while (true) {
     for (int i = 0; i < OPTION_COUNT; i++) {
-      if (i == j) attron(A_REVERSE);
+      if (i == j) {
+        attron(A_REVERSE);
+      }
       mvprintw(i, 0, "%s\n", option_list[i]);
-      if (i == j) attroff(A_REVERSE);
+      if (i == j) {
+        attroff(A_REVERSE);
+      }
     }
     
     switch (getch()) {
       case 'w':
       case KEY_UP:
         j--;
-        if (j == -1)
+        if (j == -1) {
           j = OPTION_COUNT - 1;
+        }
         break;
       case 's':
       case KEY_DOWN:
         j++;
-        if (j == OPTION_COUNT)
+        if (j == OPTION_COUNT) {
           j = 0;
+        }
         break;
       case '\n':
         option(j);
@@ -890,28 +918,29 @@ int main(void) {
       mvprintw(3, width + 4, "XY: (%d, %d)\n", x, y);
       mvprintw(4, width + 4, "Spawn XY: (%d, %d)\n", spawn_x, spawn_y);
       mvprintw(5, width + 4, "Ticks: %u\n", ticks);
+      mvprintw(6, width + 4, "Session Type: %s\n", is_multiplayer ? "Multiplayer" : "Singleplayer");
 
       attron(COLOR_PAIR(held_block));
-      mvaddch(7, width + 19, block[held_block]);
+      mvaddch(8, width + 19, block[held_block]);
       attroff(COLOR_PAIR(held_block));
 
-      mvprintw(8, width + 4, "Block ID: %d\n", held_block);
-      mvprintw(9, width + 4, "Block Name: %s\n", block_name[held_block]);
-      mvprintw(10, width + 4, "Block Type: %s\n", block_type_name[block_type[held_block]]);
+      mvprintw(9, width + 4, "Block ID: %d\n", held_block);
+      mvprintw(10, width + 4, "Block Name: %s\n", block_name[held_block]);
+      mvprintw(11, width + 4, "Block Type: %s\n", block_type_name[block_type[held_block]]);
 
-      mvprintw(12, width + 4, "Building: %s\n", is_enabled(building));
-      mvprintw(13, width + 4, "Painting: %s\n", is_enabled(painting));    
-      mvprintw(14, width + 4, "Solidity: %s\n", is_enabled(solidity));
-      mvprintw(15, width + 4, "Warps: %s\n", is_enabled(warps));
-      mvprintw(16, width + 4, "Zipwires: %s\n", is_enabled(zipwires));
+      mvprintw(13, width + 4, "Building: %s\n", is_enabled(building));
+      mvprintw(14, width + 4, "Painting: %s\n", is_enabled(painting));    
+      mvprintw(15, width + 4, "Solidity: %s\n", is_enabled(solidity));
+      mvprintw(16, width + 4, "Warps: %s\n", is_enabled(warps));
+      mvprintw(17, width + 4, "Zipwires: %s\n", is_enabled(zipwires));
 
-      mvprintw(18, width + 4, "Coins: %u\n", coin_count);
-      mvprintw(19, width + 4, "Red Key: %s\n", key_red ? "You Have This!" : "You Don't Have This");
-      mvprintw(20, width + 4, "Blue Key: %s\n", key_blue ? "You Have This!" : "You Don't Have This");
-      mvprintw(21, width + 4, "Green Key: %s\n", key_green ? "You Have This!" : "You Don't Have This");
+      mvprintw(19, width + 4, "Coins: %u\n", coin_count);
+      mvprintw(20, width + 4, "Red Key: %s\n", key_red ? "You Have This!" : "You Don't Have This");
+      mvprintw(21, width + 4, "Blue Key: %s\n", key_blue ? "You Have This!" : "You Don't Have This");
+      mvprintw(22, width + 4, "Green Key: %s\n", key_green ? "You Have This!" : "You Don't Have This");
 
-      mvprintw(23, width + 4, "Username: %s\n", username);
-      mvprintw(24, width + 4, "Level Name: %s\n", level_name);
+      mvprintw(24, width + 4, "Username: %s\n", username);
+      mvprintw(25, width + 4, "Level Name: %s\n", level_name);
 
       // TODO redrawing this text every tick is inefficient so don't do it
 
